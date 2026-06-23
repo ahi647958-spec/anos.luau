@@ -1,4 +1,4 @@
--- [[ m1v ADVANCED SUITE V16 - PART 1: UI & TABS SYSTEM ]] --
+-- [[ m1v ULTIMATE TESTING FRAMEWORK - PART 1: CORE ENGINE & UI TABS ]] --
 if not _G.m1v_Config then
     _G.m1v_Config = {
         espEnabled = true,
@@ -7,17 +7,19 @@ if not _G.m1v_Config then
         jumpPowerEnabled = false,
         infiniteJump = false,
         
-        -- إعدادات الألغاز والتهكير الجديدة
+        showESPHealth = true,
+        showESPDistance = true,
+        showESPInventory = true,
+        
         atmHackEnabled = false,
         vehicleBypassEnabled = false,
         
-        -- إعدادات الـ Aimbot والـ ESP الجديدة
         FOV_RADIUS = 150,
         targetSpeed = 16,
         targetJump = 50,
         espColor = Color3.fromRGB(0, 255, 150),
         aimPart = "Head",
-        aimKey = Enum.KeyCode.E, -- الزر المطلوب لتفعيل الأيمبوت بضغطة واحدة
+        aimKey = Enum.KeyCode.E, -- الزر الافتراضي [E] لربط الأيمبوت بضغطة واحدة
         
         whitelistedPlayers = {},
         espObjects = {},
@@ -29,9 +31,9 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local function generateSecureToken()
-    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_!!"
     local result = ""
-    for i = 1, 16 do
+    for i = 1, math.random(16, 24) do
         local rand = math.random(1, #chars)
         result = result .. string.sub(chars, rand, rand)
     end
@@ -51,18 +53,18 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = getSafeContext()
 _G.m1v_Gui = ScreenGui
 
--- 1. الزر الصغير الخارجي مكتوب فيه m1v وقابل للتحريك والسحب بالماوس
+-- الزر الصغير الخارجي مكتوب فيه m1v وقابل للتحريك والسحب بالماوس
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = generateSecureToken()
 ToggleButton.Size = UDim2.new(0, 55, 0, 35)
 ToggleButton.Position = UDim2.new(0, 20, 0, 20)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-ToggleButton.Text = "m1v" -- تم تعديل النص هنا
+ToggleButton.Text = "m1v"
 ToggleButton.TextColor3 = _G.m1v_Config.espColor
-ToggleButton.TextSize = 14
+ToggleButton.TextSize = 13
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Active = true
-ToggleButton.Draggable = true -- تفعيل تحريك الزر الصغير نفسه ف الشاشة
+ToggleButton.Draggable = true -- تفعيل سحب المربع الصغير بالماوس
 ToggleButton.Parent = ScreenGui
 
 local ToggleCorner = Instance.new("UICorner")
@@ -70,11 +72,11 @@ ToggleCorner.CornerRadius = UDim.new(0, 6)
 ToggleCorner.Parent = ToggleButton
 
 local ToggleStroke = Instance.new("UIStroke")
-ToggleStroke.Color = Color3.fromRGB(40, 40, 40)
+ToggleStroke.Color = Color3.fromRGB(45, 45, 45)
 ToggleStroke.Thickness = 1.2
 ToggleStroke.Parent = ToggleButton
 
--- 2. اللوحة الرئيسية الكبيرة مجهزة للسحب
+-- الواجهة الرئيسية الكبيرة مجهزة للسحب والتحريك الكامل
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = generateSecureToken()
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -92,11 +94,15 @@ MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = MainFrame
 
 local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(45, 45, 45)
+MainStroke.Color = Color3.fromRGB(40, 40, 40)
 MainStroke.Thickness = 1.5
 MainStroke.Parent = MainFrame
 
--- شريط التبويبات الجانبي (Tabs Navigation)
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- شريط التبويبات الجانبي لتنظيم القوائم (Tabs Navigation)
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(0, 130, 1, 0)
 TabBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -119,11 +125,6 @@ ContainerFrame.BackgroundTransparency = 1
 ContainerFrame.Parent = MainFrame
 _G.m1v_Container = ContainerFrame
 
-ToggleButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- دالة معيارية لإنشاء التبويبات (Combat, Visuals, Exploits)
 local function createTab(text, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -10, 0, 35)
@@ -143,7 +144,7 @@ local function createTab(text, order)
     scroll.Size = UDim2.new(1, 0, 1, 0)
     scroll.BackgroundTransparency = 1
     scroll.ScrollBarThickness = 2
-    scroll.CanvasSize = UDim2.new(0, 0, 0, 400)
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 420)
     scroll.Visible = (order == 1)
     scroll.Parent = ContainerFrame
     
@@ -166,88 +167,14 @@ _G.m1v_CombatTab = createTab("Combat (Aim)", 1)
 _G.m1v_VisualsTab = createTab("Visuals (ESP)", 2)
 _G.m1v_ExploitsTab = createTab("Exploits (Hack)", 3)
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "m1v Framework",
-    Text = "Part 1 UI Matrix Configured. draggables active.",
-    Duration = 3
-})
-
+game:GetService("StarterGui"):SetCore("SendNotification", {Title = "m1v Premium", Text = "Part 1 UI Loaded Successfully.", Duration = 2})
 task.wait(0.4)
--- ==========================================================
--- [[ STEP 2: COMBAT & VISUAL CONTROL MODULES ]] ------------
--- ==========================================================
+-- [[ m1v ULTIMATE TESTING FRAMEWORK - PART 2: CONTROL ENGINES ]] --
 local CombatTab = _G.m1v_CombatTab
-local VisualsTab = _G.m1v_VisualsTab
-
-if not CombatTab or not VisualsTab then
-    return warn("[m1v Error]: Part 1 structure missing.")
-end
-
-local function createToggle(text, parent, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -5, 0, 36)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    frame.Parent = parent
-    
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 5)
-    c.Parent = frame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 160, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    label.TextSize = 13
-    label.Font = Enum.Font.SourceSansBold
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.BackgroundTransparency = 1
-    label.Parent = frame
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 60, 0, 24)
-    btn.Position = UDim2.new(1, -70, 0.5, -12)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 11
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BackgroundColor3 = Color3.fromRGB(38, 143, 85)
-    btn.Text = "ON"
-    btn.Parent = frame
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    btnCorner.Parent = btn
-    
-    local state = true
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(38, 143, 85) or Color3.fromRGB(150, 52, 52)
-        btn.Text = state and "ON" or "OFF"
-        callback(state)
-    end)
-end
-
--- وضع أزرار التشغيل والتحكم ف التبويبات المخصصة ليها
-createToggle("Enable m1v Aimbot", CombatTab, function(s) _G.m1v_Config.aimbotEnabled = s end)
-createToggle("Enable m1v ESP Engine", VisualsTab, function(s) _G.m1v_Config.espEnabled = s end)
-
-task.wait(0.2)
--- ==========================================================
--- [[ STEP 3: ADVANCED DETAILED ESP & EXPLOITS MODULES ]] ---
--- ==========================================================
 local VisualsTab = _G.m1v_VisualsTab
 local ExploitsTab = _G.m1v_ExploitsTab
 
-if not VisualsTab or not ExploitsTab then
-    return warn("[m1v Error]: Advanced layout structure not verified.")
-end
-
--- إضافة متغيرات التحكم التفصيلية للـ ESP داخل المصفوفة العالمية
-_G.m1v_Config.showESPHealth = true
-_G.m1v_Config.showESPDistance = true
-_G.m1v_Config.showESPInventory = true
-
-local function createSubToggle(text, parent, defaultState, callback)
+local function createToggle(text, parent, defaultState, callback)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -5, 0, 36)
     frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -291,27 +218,25 @@ local function createSubToggle(text, parent, defaultState, callback)
     end)
 end
 
--- أزرار تشغيل وإطفاء خصائص الـ ESP بشكل منفصل تماماً كما طلبت
-createSubToggle("Display Health [HP]", VisualsTab, _G.m1v_Config.showESPHealth, function(s) _G.m1v_Config.showESPHealth = s end)
-createSubToggle("Display Distance [Studs]", VisualsTab, _G.m1v_Config.showESPDistance, function(s) _G.m1v_Config.showESPDistance = s end)
-createSubToggle("Display Inventory [Items]", VisualsTab, _G.m1v_Config.showESPInventory, function(s) _G.m1v_Config.showESPInventory = s end)
+-- أزرار تشغيل الميزات الأساسية والـ ESP التفصيلي المستقل
+createToggle("Enable m1v Aimbot", CombatTab, _G.m1v_Config.aimbotEnabled, function(s) _G.m1v_Config.aimbotEnabled = s end)
+createToggle("Enable m1v ESP Engine", VisualsTab, _G.m1v_Config.espEnabled, function(s) _G.m1v_Config.espEnabled = s end)
+
+createToggle("Display Health [HP]", VisualsTab, _G.m1v_Config.showESPHealth, function(s) _G.m1v_Config.showESPHealth = s end)
+createToggle("Display Distance [Studs]", VisualsTab, _G.m1v_Config.showESPDistance, function(s) _G.m1v_Config.showESPDistance = s end)
+createToggleModule = nil -- حماية إضافية للبيئة
+createToggle("Display Inventory [Items]", VisualsTab, _G.m1v_Config.showESPInventory, function(s) _G.m1v_Config.showESPInventory = s end)
 
 -- أزرار تشغيل وإطفاء الـ Hacks بـ ON / OFF مستقلة
-createSubToggle("Auto ATM & Bank Hack", ExploitsTab, _G.m1v_Config.atmHackEnabled, function(s) _G.m1v_Config.atmHackEnabled = s end)
-createSubToggle("Bypass Vehicle Locks", ExploitsTab, _G.m1v_Config.vehicleBypassEnabled, function(s) _G.m1v_Config.vehicleBypassEnabled = s end)
+createToggle("Auto ATM & Bank Hack", ExploitsTab, _G.m1v_Config.atmHackEnabled, function(s) _G.m1v_Config.atmHackEnabled = s end)
+createToggle("Bypass Vehicle Locks", ExploitsTab, _G.m1v_Config.vehicleBypassEnabled, function(s) _G.m1v_Config.vehicleBypassEnabled = s end)
 
-task.wait(0.2)
--- ==========================================================
--- [[ STEP 4: INTERACTIVE KEYBIND & FRIENDLY EXCEPTION UI ]] -
--- ==========================================================
-local CombatTab = _G.m1v_CombatTab
-local MainFrame = _G.m1v_MainFrame
+-- أزرار الفحص الفيزيائي
+createToggle("Modify WalkSpeed", ExploitsTab, _G.m1v_Config.walkSpeedEnabled, function(s) _G.m1v_Config.walkSpeedEnabled = s end)
+createToggle("Modify JumpPower", ExploitsTab, _G.m1v_Config.jumpPowerEnabled, function(s) _G.m1v_Config.jumpPowerEnabled = s end)
+createToggle("Infinite Air Jump", ExploitsTab, _G.m1v_Config.infiniteJump, function(s) _G.m1v_Config.infiniteJump = s end)
 
-if not CombatTab or not MainFrame then
-    return warn("[m1v Error]: Configuration target stream lost.")
-end
-
--- 1. إضافة زر اختيار المفتاح الخاص بالـ Aimbot (Keybind Selector)
+-- زر اختيار مفتاح الـ Aimbot (Keybind Selector)
 local KeybindFrame = Instance.new("Frame")
 KeybindFrame.Size = UDim2.new(1, -5, 0, 40)
 KeybindFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -344,28 +269,32 @@ bindCorner.Parent = BindBtn
 
 local isBinding = false
 BindBtn.MouseButton1Click:Connect(function()
-    isBinding = true
-    BindBtn.Text = "PRESS ANY KEY"
-    BindBtn.BackgroundColor3 = Color3.fromRGB(100, 30, 30)
+    isBinding = true; BindBtn.Text = "PRESS ANY KEY"; BindBtn.BackgroundColor3 = Color3.fromRGB(100, 30, 30)
 end)
 
-table.insert(_G.m1v_Config.connections, game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
+table.insert(_G.m1v_Config.connections, game:GetService("UserInputService").InputBegan:Connect(function(input)
     if isBinding and input.UserInputType == Enum.UserInputType.Keyboard then
         _G.m1v_Config.aimKey = input.KeyCode
         KeybindLabel.Text = "Aim Keybind: [" .. input.KeyCode.Name .. "]"
-        BindBtn.Text = "CLICK TO BIND"
-        BindBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        BindBtn.Text = "CLICK TO BIND"; BindBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         isBinding = false
     end
 end))
 
--- 2. بناء قائمة Friendly / Whitelist المستقلة بحد ذاتها على اليمين
+game:GetService("StarterGui"):SetCore("SendNotification", {Title = "m1v Factory", Text = "Part 2 Controls Configured.", Duration = 2})
+task.wait(0.4)
+-- [[ m1v ULTIMATE TESTING FRAMEWORK - PART 3: SIMULATION RUNTIME ]] --
+local MainFrame = _G.m1v_MainFrame
+local ScreenGui = _G.m1v_Gui
+local Camera = workspace.CurrentCamera
+
+-- 1. إنشاء لوحة الأصدقاء/الاستثناءات (Friendly Whitelist) المستقلة بذاتها تماماً على اليمين
 local WhitelistScroll = Instance.new("ScrollingFrame")
-WhitelistScroll.Size = UDim2.new(1, -10, 1, -10)
-WhitelistScroll.Position = UDim2.new(0, 5, 0, 5)
+WhitelistScroll.Size = UDim2.new(0, 250, 1, -85)
+WhitelistScroll.Position = UDim2.new(0, 295, 0, 75)
 WhitelistScroll.BackgroundTransparency = 1
 WhitelistScroll.ScrollBarThickness = 3
-WhitelistScroll.Parent = MainFrame:FindFirstChild("Frame") or MainFrame
+WhitelistScroll.Parent = MainFrame
 
 local ListLayout = Instance.new("UIListLayout")
 ListLayout.Padding = UDim.new(0, 4)
@@ -386,8 +315,7 @@ local function refreshFriendlyList()
             item.TextColor3 = Color3.fromRGB(240, 240, 240)
             
             local ic = Instance.new("UICorner")
-            ic.CornerRadius = UDim.new(0, 4)
-            ic.Parent = item
+            ic.CornerRadius = UDim.new(0, 4); ic.Parent = item
             
             item.MouseButton1Click:Connect(function()
                 if _G.m1v_Config.whitelistedPlayers[p.Name] then _G.m1v_Config.whitelistedPlayers[p.Name] = nil else _G.m1v_Config.whitelistedPlayers[p.Name] = true end
@@ -403,28 +331,19 @@ table.insert(_G.m1v_Config.connections, Players.PlayerAdded:Connect(refreshFrien
 table.insert(_G.m1v_Config.connections, Players.PlayerRemoving:Connect(refreshFriendlyList))
 refreshFriendlyList()
 
-task.wait(0.2)
--- ==========================================================
--- [[ STEP 5: VISUAL RUNTIME LOGIC & ANTI-EXPLOIT SHIELD ]] -
--- ==========================================================
-local Camera = workspace.CurrentCamera
-local ScreenGui = _G.m1v_Gui
-
+-- دالة فحص الـ Inventory للاعبين
 local function getInventoryTools(player)
     local toolNames = {}
     if player and player:FindFirstChild("Backpack") then
-        for _, tool in ipairs(player.Backpack:GetChildren()) do
-            if tool:IsA("Tool") then table.insert(toolNames, tool.Name) end
-        end
+        for _, t in ipairs(player.Backpack:GetChildren()) do if t:IsA("Tool") then table.insert(toolNames, t.Name) end end
     end
     if player.Character then
-        for _, tool in ipairs(player.Character:GetChildren()) do
-            if tool:IsA("Tool") then table.insert(toolNames, tool.Name) end
-        end
+        for _, t in ipairs(player.Character:GetChildren()) do if t:IsA("Tool") then table.insert(toolNames, t.Name) end end
     end
     return #toolNames > 0 and table.concat(toolNames, ", ") or "None"
 end
 
+-- بناء محرك الـ ESP المتطور تختار منه ما تشاء (بدون أي خط Tracer واصل للاعب)
 local function constructAdvancedESP(player)
     if player == LocalPlayer then return end
     local function process(character)
@@ -439,27 +358,14 @@ local function constructAdvancedESP(player)
             end
             
             local bGui = Instance.new("BillboardGui")
-            bGui.Size = UDim2.new(0, 180, 0, 75)
-            bGui.AlwaysOnTop = true
-            bGui.Adornee = head
-            bGui.Parent = ScreenGui
+            bGui.Size = UDim2.new(0, 180, 0, 75); bGui.AlwaysOnTop = true; bGui.Adornee = head; bGui.Parent = ScreenGui
             
             local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.BackgroundTransparency = 1
-            label.TextColor3 = _G.m1v_Config.espColor
-            label.TextSize = 11
-            label.Font = Enum.Font.SourceSansBold
-            label.TextWrapped = true
-            label.Parent = bGui
+            label.Size = UDim2.new(1, 0, 1, 0); label.BackgroundTransparency = 1; label.TextColor3 = _G.m1v_Config.espColor
+            label.TextSize = 11; label.Font = Enum.Font.SourceSansBold; label.TextWrapped = true; label.Parent = bGui
             
             local box = Instance.new("SelectionBox")
-            box.Adornee = character
-            box.Color3 = _G.m1v_Config.espColor
-            box.LineThickness = 0.05
-            box.SurfaceTransparency = 0.88
-            box.SurfaceColor3 = _G.m1v_Config.espColor
-            box.Parent = ScreenGui
+            box.Adornee = character; box.Color3 = _G.m1v_Config.espColor; box.LineThickness = 0.05; box.SurfaceTransparency = 0.88; box.SurfaceColor3 = _G.m1v_Config.espColor; box.Parent = ScreenGui
             
             _G.m1v_Config.espObjects[player.Name] = {Billboard = bGui, BoxSelection = box, Label = label, RootPart = root, PlayerRef = player}
         end)
@@ -492,22 +398,21 @@ table.insert(_G.m1v_Config.connections, game:GetService("UserInputService").Jump
     end
 end))
 
--- [[ محرك المزامنة والحماية المستمرة ضد الهكرز الآخرين ]] --
+-- حلقة المزامنة الشاملة للـ Runtimes والحماية اللامركزية ضد الـ ESP الآخرين
 table.insert(_G.m1v_Config.connections, RunService.RenderStepped:Connect(function()
     
-    -- خاصية الحماية الفورية: تشويش الـ ESP والـ Aimbot لأي شخص آخر يحاول رصدك
+    -- خاصية التشويش: حمايتك ضد الـ ESP والـ Aimbot لأي هكر آخر ف السيرفر
     pcall(function()
         local myChar = LocalPlayer.Character
         if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            -- إرسال تحديث فيزيائي وهمي للأجهزة الأخرى لتغيير إحداثيات الـ ESP الخاص بهم عن بعد
             local root = myChar.HumanoidRootPart
             if math.random(1, 5) == 1 then
-                root.Velocity = Vector3.new(math.random(-100, 100), math.random(-100, 100), math.random(-100, 100))
+                root.Velocity = Vector3.new(math.random(-120, 120), math.random(-120, 120), math.random(-120, 120))
             end
         end
     end)
 
-    -- تحديث وحساب بيانات الـ ESP التفصيلية للاعبين الآخرين
+    -- مزامنة حسابات الـ ESP التفصيلية وتطبيق أزرار الـ ON/OFF يدوياً
     for name, obj in pairs(_G.m1v_Config.espObjects) do
         pcall(function()
             if obj.RootPart and obj.RootPart.Parent and _G.m1v_Config.espEnabled then
@@ -515,23 +420,16 @@ table.insert(_G.m1v_Config.connections, RunService.RenderStepped:Connect(functio
                 if onScreen then
                     obj.Billboard.Enabled = true; obj.BoxSelection.Visible = true
                     local displayText = "Name: " .. obj.PlayerRef.Name
-                    
                     if _G.m1v_Config.showESPHealth then
-                        local health = obj.RootPart.Parent.Humanoid.Health
-                        local maxHealth = obj.RootPart.Parent.Humanoid.MaxHealth
-                        displayText = displayText .. string.format("\nHP: %d/%d", health, maxHealth)
+                        displayText = displayText .. string.format("\nHP: %d/%d", obj.RootPart.Parent.Humanoid.Health, obj.RootPart.Parent.Humanoid.MaxHealth)
                     end
-                    
                     if _G.m1v_Config.showESPDistance then
                         local distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - obj.RootPart.Position).Magnitude)
                         displayText = displayText .. string.format("\nDist: %d studs", distance)
                     end
-                    
                     if _G.m1v_Config.showESPInventory then
-                        local inv = getInventoryTools(obj.PlayerRef)
-                        displayText = displayText .. "\nInv: " .. inv
+                        displayText = displayText .. "\nInv: " .. getInventoryTools(obj.PlayerRef)
                     end
-                    
                     obj.Label.Text = displayText
                 else
                     obj.Billboard.Enabled = false; obj.BoxSelection.Visible = false
@@ -542,7 +440,7 @@ table.insert(_G.m1v_Config.connections, RunService.RenderStepped:Connect(functio
         end)
     end
     
-    -- تهكير الألغاز المستمرة (ATM / Bank)
+    -- تهكير الألغاز التفاعلية (ATM / Bank) المستمر
     if _G.m1v_Config.atmHackEnabled then
         pcall(function()
             local bankEvents = ReplicatedStorage:FindFirstChild("BankEvents") or ReplicatedStorage:FindFirstChild("ATMEvents") or ReplicatedStorage
@@ -551,7 +449,7 @@ table.insert(_G.m1v_Config.connections, RunService.RenderStepped:Connect(functio
         end)
     end
     
-    -- تهكير قفل المركبات المستمر
+    -- تخطي قفل المركبات المستمر
     if _G.m1v_Config.vehicleBypassEnabled then
         pcall(function()
             local vehicleEvents = ReplicatedStorage:FindFirstChild("VehicleEvents") or ReplicatedStorage:FindFirstChild("CarEvents") or ReplicatedStorage
@@ -560,11 +458,18 @@ table.insert(_G.m1v_Config.connections, RunService.RenderStepped:Connect(functio
         end)
     end
     
-    -- قفل الـ Aimbot عند الضغط على الزر المخصص (E مثلاً)
+    -- لقط الأيمبوت الفوري عند ضغط وتثبيت الزر المختار (E أو ما قمت ببرمجته يدوياً)
     if _G.m1v_Config.aimbotEnabled and game:GetService("UserInputService"):IsKeyDown(_G.m1v_Config.aimKey) then
         local t = getClosestTarget()
         if t then Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position) end
     end
+    
+    -- تعديل الخصائص الفيزيائية المحلية
+    local c = LocalPlayer.Character
+    if c and c:FindFirstChild("Humanoid") then
+        if _G.m1v_Config.walkSpeedEnabled then c.Humanoid.WalkSpeed = _G.m1v_Config.targetSpeed end
+        if _G.m1v_Config.jumpPowerEnabled then c.Humanoid.JumpPower = _G.m1v_Config.targetJump end
+    end
 end))
 
-game:GetService("StarterGui"):SetCore("SendNotification", {Title = "m1v Framework", Text = "All Pipeline Steps Loaded 100%. Anti-ESP Active.", Duration = 4})
+game:GetService("StarterGui"):SetCore("SendNotification", {Title = "m1v Ultimate", Text = "All Pipeline Steps Synchronized 100%.", Duration = 4})
