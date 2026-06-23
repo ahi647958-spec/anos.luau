@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -11,7 +10,7 @@ local mouseUnlocked = false
 local FOV_RADIUS = 150
 local whitelistedPlayers = {}
 
--- دالة لتوليد أسماء عشوائية تماماً لعناصر الواجهة لتخطي فلاتر فحص الأسماء
+-- دالة لتوليد أسماء عشوائية تماماً لتخطي فلاتر فحص الأسماء
 local function generateRandomName()
     local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     local length = math.random(10, 20)
@@ -27,38 +26,40 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = generateRandomName()
 ScreenGui.ResetOnSpawn = false
 
--- محاولة الحقن داخل CoreGui أو PlayerGui
+-- تكتيك الحقن الآمن لتفادي فلاتر السيرفر
 local secureParent = nil
-pcall(function() secureParent = game:GetService("CoreGui") end)
-if not secureParent then secureParent = LocalPlayer:WaitForChild("PlayerGui") end
+pcall(function() 
+    secureParent = game:GetService("CoreGui") 
+end)
+if not secureParent then 
+    secureParent = LocalPlayer:WaitForChild("PlayerGui") 
+end
 ScreenGui.Parent = secureParent
 
--- // 1. دمج وتعديل ستايل المربع الصغير (Executor Style Button ⚡) لإنشائه برمجياً
+-- // 1. إنشاء وتصميم الزر المربع الصغير العصري (⚡) من الصفر
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = generateRandomName()
-ToggleButton.Size = UDim2.new(0, 45, 0, 45) -- مربع صغير
-ToggleButton.Position = UDim2.new(0, 20, 0, 20) -- محطوط الفوق على اليسار
-ToggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- رمادي غامق بزاف (Dark Mode)
-ToggleButton.Text = "⚡" -- رمز الطاقات أو الإكسيكيوتور
-ToggleButton.TextColor3 = Color3.fromRGB(0, 255, 140) -- أخضر نيوني مضيء
+ToggleButton.Size = UDim2.new(0, 45, 0, 45)
+ToggleButton.Position = UDim2.new(0, 20, 0, 20)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+ToggleButton.Text = "⚡"
+ToggleButton.TextColor3 = Color3.fromRGB(0, 255, 140)
 ToggleButton.TextSize = 22
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Active = true
-ToggleButton.Draggable = true -- إتاحة سحب الزر الصغير أيضاً لتسهيل اللعب
+ToggleButton.Draggable = true
 ToggleButton.Parent = ScreenGui
 
--- ترطيب الجناب ديال المربع باش يجي عصري
 local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 8)
 btnCorner.Parent = ToggleButton
 
--- خط محيط بالزر (Border) باش يعطيه شكل احترافي
 local btnStroke = Instance.new("UIStroke")
 btnStroke.Color = Color3.fromRGB(45, 45, 45)
 btnStroke.Thickness = 1.5
 btnStroke.Parent = ToggleButton
 
--- // 2. اللوحة الرئيسية الكبيرة (Main Panel)
+-- // 2. إنشاء وتصميم اللوحة الرئيسية الكبيرة (Main Panel)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = generateRandomName()
 MainFrame.Size = UDim2.new(0, 380, 0, 210)
@@ -66,22 +67,22 @@ MainFrame.Position = UDim2.new(0, 30, 0, 100)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- إضافة ميزة سحب الواجهة لتسهيل التجربة
-MainFrame.Visible = true -- تظهر افتراضياً
+MainFrame.Draggable = true
+MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
 
--- الخدمة (Logic): الكليكة على زر ⚡ كتقلب الحالة ديال الـ MainFrame الكبيرة
+-- ربط كليكة زر ⚡ لإخفاء وإظهار الشاشة الكبيرة
 ToggleButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 190, 0, 30)
-Title.Text = "Diagnostic System v10 (Test)"
+Title.Text = "Diagnostic System v10"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
 Title.Font = Enum.Font.SourceSansBold
@@ -164,27 +165,43 @@ local UICornerArea = Instance.new("UICorner")
 UICornerArea.CornerRadius = UDim.new(1, 0)
 UICornerArea.Parent = AreaFrame
 
+-- // 3. الدوال المركزية لمراقبة حالة الـ ESP والـ Aimbot والـ الألوان
 local function updateESPStatus()
-    TagButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-    TagButton.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
-    
+    if espEnabled then
+        TagButton.Text = "ESP: ON"
+        TagButton.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+    else
+        TagButton.Text = "ESP: OFF"
+        TagButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+    end
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Character and player.Character:FindFirstChild("Head") then
             local billboard = player.Character.Head:FindFirstChild("DiagnosticLabel")
-            if billboard then billboard.Enabled = espEnabled end
+            if billboard then 
+                billboard.Enabled = espEnabled 
+            end
         end
     end
 end
 
 local function updateAimbotStatus()
-    LockButton.Text = aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
-    LockButton.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
-    AreaFrame.Visible = aimbotEnabled
+    if aimbotEnabled then
+        LockButton.Text = "Aimbot: ON"
+        LockButton.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+        AreaFrame.Visible = true
+    else
+        LockButton.Text = "Aimbot: OFF"
+        LockButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        AreaFrame.Visible = false
+    end
 end
 
+-- // 4. دالة إدارة قائمة الأسماء المنسدلة (Player Whitelist System)
 local function refreshPlayerList()
     for _, child in ipairs(PlayerListFrame:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
+        if child:IsA("TextButton") then 
+            child:Destroy() 
+        end
     end
     
     local count = 0
@@ -230,6 +247,7 @@ Players.PlayerAdded:Connect(refreshPlayerList)
 Players.PlayerRemoving:Connect(refreshPlayerList)
 refreshPlayerList()
 
+-- // 5. نظام إنشاء وتتبع الـ BillboardGui اللانهائي للـ ESP الشامل
 local function applyVisualTag(player)
     if player == LocalPlayer then return end
     
@@ -261,13 +279,12 @@ local function applyVisualTag(player)
         billboard.Parent = head
     end
     
-    if player.Character then setupBillboard(player.Character) end
+    if player.Character then 
+        setupBillboard(player.Character) 
+    end
     player.CharacterAdded:Connect(setupBillboard)
 end
 
-for _, player in ipairs(Players:GetPlayers()) do applyVisualTag(player) end
-Players.PlayerAdded:Connect(applyVisualTag)
-
-local function getClosestPlayerInZone()
-    local closestPlayer = nil
-local shortestDistance = FOV_RADIUSlocal mousePosition = UserInputService:GetMouseLocation()for _, player in ipairs(Players:GetPlayers()) doif player ~= LocalPlayer and not whitelistedPlayers[player.Name] and player.Character and player.Character:FindFirstChild("Head") thenlocal head = player.Character.Headlocal screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)if onScreen thenlocal distance = (Vector2.new(screenPosition.X, screenPosition.Y) - mousePosition).Magnitudeif distance < shortestDistance thenshortestDistance = distanceclosestPlayer = playerendendendendreturn closestPlayerendTagButton.MouseButton1Click:Connect(function()espEnabled = not espEnabledupdateESPStatus()end)LockButton.MouseButton1Click:Connect(function()aimbotEnabled = not aimbotEnabledupdateAimbotStatus()end)UserInputService.InputBegan:Connect(function(input, gameProcessed)if input.KeyCode == Enum.KeyCode.LeftControl thenmouseUnlocked = not mouseUnlockedif mouseUnlocked thenUserInputService.MouseBehavior = Enum.MouseBehavior.DefaultelseUserInputService.MouseBehavior = Enum.MouseBehavior.LockCenterendendif input.KeyCode == Enum.KeyCode.A and not gameProcessed thenespEnabled = not espEnabledupdateESPStatus()endif input.KeyCode == Enum.KeyCode.E and not gameProcessed thenaimbotEnabled = not aimbotEnabledupdateAimbotStatus()endend)RunService.RenderStepped:Connect(function()if mouseUnlocked thenUserInputService.MouseBehavior = Enum.MouseBehavior.Defaultendlocal mousePos = UserInputService:GetMouseLocation()AreaFrame.Position = UDim2.new(0, mousePos.X - FOV_RADIUS, 0, mousePos.Y - FOV_RADIUS)if espEnabled thenfor _, player in ipairs(Players:GetPlayers()) doif player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") thenlocal myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")local enemyRoot = player.Character:FindFirstChild("HumanoidRootPart")local humanoid = player.Character:FindFirstChildOfClass("Humanoid")local billboard = player.Character.Head:FindFirstChild("DiagnosticLabel")if billboard thenlocal textLabel = billboard:FindFirstChildOfClass("TextLabel")if textLabel thenlocal distanceStr = "--"if myRoot and enemyRoot thendistanceStr = tostring(math.floor((myRoot.Position - enemyRoot.Position).Magnitude)) .. "m"endlocal healthStr = "0/0"if humanoid thenhealthStr = tostring(math.floor(humanoid.Health)) .. "/" .. tostring(math.floor(humanoid.MaxHealth))endlocal heldItem = "None"local currentTool = player.Character:FindFirstChildOfClass("Tool")if currentTool thenheldItem = currentTool.NameendtextLabel.Text = player.Name .. "\n[HP: " .. healthStr .. "] [Dist: " .. distanceStr .. "]\n[Item: " .. heldItem .. "]"endendendendendif aimbotEnabled thenlocal targetPlayer = getClosestPlayerInZone()if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") thenlocal headPos = targetPlayer.Character.Head.Positionlocal cPos = Camera.CFrame.Positionlocal lookDir = (headPos - cPos).UnitCamera.CFrame = CFrame.new(cPos, cPos + lookDir)endendend)task.spawn(function()pcall(function()if hookmetamethod and typeof(hookmetamethod) == "function" thenlocal oldIndexoldIndex = hookmetamethod(game, "__index", function(self, key)local isServerCall = falsepcall(function()if checkcaller and typeof(checkcaller) == "function" thenisServerCall = not checkcaller()endend)if aimbotEnabled and self == Camera and key == "CFrame" and isServerCall thenreturn CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + Vector3.new(0, 0, -1))endreturn oldIndex(self, key)end)endend)end)
+for _, player in ipairs(Players:GetPlayers()) do 
+    applyVisualTag(player) 
+end
