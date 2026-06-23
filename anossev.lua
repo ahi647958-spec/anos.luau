@@ -6,10 +6,10 @@ local Camera = workspace.CurrentCamera
 
 local espEnabled = false
 local aimbotEnabled = false
-local mouseUnlocked = false
 local FOV_RADIUS = 150
 local whitelistedPlayers = {}
 
+-- توليد اسم عشوائي تماماً للواجهة لتخطي فلاتر فحص الأسماء
 local function generateRandomName()
     local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     local length = math.random(10, 20)
@@ -25,36 +25,11 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = generateRandomName()
 ScreenGui.ResetOnSpawn = false
 
+-- محاولة الحقن داخل CoreGui أو PlayerGui
 local secureParent = nil
-pcall(function() 
-    secureParent = game:GetService("CoreGui") 
-end)
-if not secureParent then 
-    secureParent = LocalPlayer:WaitForChild("PlayerGui") 
-end
+pcall(function() secureParent = game:GetService("CoreGui") end)
+if not secureParent then secureParent = LocalPlayer:WaitForChild("PlayerGui") end
 ScreenGui.Parent = secureParent
-
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = generateRandomName()
-ToggleButton.Size = UDim2.new(0, 45, 0, 45)
-ToggleButton.Position = UDim2.new(0, 20, 0, 20)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-ToggleButton.Text = "m1v"
-ToggleButton.TextColor3 = Color3.fromRGB(0, 255, 140)
-ToggleButton.TextSize = 22
-ToggleButton.Font = Enum.Font.SourceSansBold
-ToggleButton.Active = true
-ToggleButton.Draggable = true
-ToggleButton.Parent = ScreenGui
-
-local btnCorner = Instance.new("UICorner")
-btnCorner.CornerRadius = UDim.new(0, 8)
-btnCorner.Parent = ToggleButton
-
-local btnStroke = Instance.new("UIStroke")
-btnStroke.Color = Color3.fromRGB(45, 45, 45)
-btnStroke.Thickness = 1.5
-btnStroke.Parent = ToggleButton
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = generateRandomName()
@@ -63,21 +38,16 @@ MainFrame.Position = UDim2.new(0, 30, 0, 100)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Visible = true
+MainFrame.Draggable = true -- إضافة ميزة سحب الواجهة لتسهيل التجربة
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
 
-ToggleButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 190, 0, 30)
-Title.Text = "Diagnostic System v10"
+Title.Text = "Diagnostic System v10 (Test)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
 Title.Font = Enum.Font.SourceSansBold
@@ -87,7 +57,7 @@ Title.Parent = MainFrame
 local Hint = Instance.new("TextLabel")
 Hint.Size = UDim2.new(0, 190, 0, 20)
 Hint.Position = UDim2.new(0, 0, 0, 25)
-Hint.Text = "Press [A] for ESP | [E] for Aimbot"
+Hint.Text = "Hold [Right Click] to Lock Target"
 Hint.TextColor3 = Color3.fromRGB(160, 160, 160)
 Hint.TextSize = 11
 Hint.Font = Enum.Font.SourceSansItalic
@@ -160,6 +130,12 @@ local UICornerArea = Instance.new("UICorner")
 UICornerArea.CornerRadius = UDim.new(1, 0)
 UICornerArea.Parent = AreaFrame
 
+-- تحديث موقع دائرة الـ FOV لتتبع الماوس بدقة
+RunService.RenderStepped:Connect(function()
+    local mousePos = UserInputService:GetMouseLocation()
+    AreaFrame.Position = UDim2.new(0, mousePos.X - FOV_RADIUS, 0, mousePos.Y - FOV_RADIUS)
+end)
+
 local function updateESPStatus()
     TagButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
     TagButton.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
@@ -167,9 +143,7 @@ local function updateESPStatus()
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Character and player.Character:FindFirstChild("Head") then
             local billboard = player.Character.Head:FindFirstChild("DiagnosticLabel")
-            if billboard then 
-                billboard.Enabled = espEnabled 
-            end
+            if billboard then billboard.Enabled = espEnabled end
         end
     end
 end
@@ -182,9 +156,7 @@ end
 
 local function refreshPlayerList()
     for _, child in ipairs(PlayerListFrame:GetChildren()) do
-        if child:IsA("TextButton") then 
-            child:Destroy() 
-        end
+        if child:IsA("TextButton") then child:Destroy() end
     end
     
     local count = 0
@@ -230,6 +202,7 @@ Players.PlayerAdded:Connect(refreshPlayerList)
 Players.PlayerRemoving:Connect(refreshPlayerList)
 refreshPlayerList()
 
+-- وظيفة تحديث الـ ESP الحقيقي وجلب البيانات من السيرفر
 local function applyVisualTag(player)
     if player == LocalPlayer then return end
     
@@ -257,17 +230,79 @@ local function applyVisualTag(player)
         label.Font = Enum.Font.SourceSansBold
         label.TextWrapped = true
         label.Parent = billboard
-        
         billboard.Parent = head
+
+        -- حلقة تكرار لتحديث البيانات ديناميكياً
+        task.spawn(function()
+            while character.Parent and billboard.Parent do
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local hp = humanoid and math.floor(humanoid.Health) or 0
+                local maxHp = humanoid and math.floor(humanoid.MaxHealth) or 100
+                
+                local localChar = LocalPlayer.Character
+                local dist = "N/A"
+                if localChar and localChar:FindFirstChild("HumanoidRootPart") and character:FindFirstChild("HumanoidRootPart") then
+                    dist = math.floor((localChar.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude) .. "m"
+                end
+                
+                local currentItem = "None"
+                local tool = character:FindFirstChildOfClass("Tool")
+                if tool then currentItem = tool.Name end
+                
+                label.Text = string.format("%s\n[HP: %d/%d] [Dist: %s]\n[Item: %s]", player.Name, hp, maxHp, dist, currentItem)
+                task.wait(0.2)
+            end
+        end)
     end
     
-    if player.Character then 
-        setupBillboard(player.Character) 
-    end
+    if player.Character then setupBillboard(player.Character) end
     player.CharacterAdded:Connect(setupBillboard)
 end
 
-for _, player in ipairs(Players:GetPlayers()) do 
-    applyVisualTag(player) 
-end
+for _, player in ipairs(Players:GetPlayers()) do applyVisualTag(player) end
 Players.PlayerAdded:Connect(applyVisualTag)
+
+local function getClosestPlayerInZone()
+    local closestPlayer = nil
+    local shortestDistance = FOV_RADIUS
+    local mousePosition = UserInputService:GetMouseLocation()
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and not whitelistedPlayers[player.Name] and player.Character and player.Character:FindFirstChild("Head") then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then -- التأكد أن اللاعب ليس ميتاً
+                local head = player.Character.Head
+                local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
+                
+                if onScreen then
+                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - mousePosition).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- تشغيل الأيم بوت عند الضغط المطول على الزر الأيمن للماوس
+RunService.RenderStepped:Connect(function()
+    if aimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = getClosestPlayerInZone()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+end)
+
+TagButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    updateESPStatus()
+end)
+
+LockButton.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    updateAimbotStatus()
+end)
