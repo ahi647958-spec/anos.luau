@@ -202,7 +202,7 @@ local function applyVisualTag(player)
         
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "DiagnosticLabel"
-        billboard.Size = UDim2.new(0, 250, 0, 70) -- تم زيادة الحجم ليتسع للبيانات الجديدة
+        billboard.Size = UDim2.new(0, 250, 0, 70)
         billboard.AlwaysOnTop = true
         billboard.MaxDistance = math.huge
         billboard.StudsOffset = Vector3.new(0, 3, 0)
@@ -283,3 +283,7 @@ end)
 
 RunService.RenderStepped:Connect(function()
     if mouseUnlocked then
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    end
+
+    if AreaFrame.Visible then
