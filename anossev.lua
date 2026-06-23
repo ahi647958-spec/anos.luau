@@ -26,28 +26,28 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = generateRandomName()
 ScreenGui.ResetOnSpawn = false
 
--- محاولة الحقن داخل CoreGui أو PlayerGui لتفادي الفحص
+-- محاولة الحقن داخل CoreGui أو PlayerGui
 local secureParent = nil
 pcall(function() secureParent = game:GetService("CoreGui") end)
 if not secureParent then secureParent = LocalPlayer:WaitForChild("PlayerGui") end
 ScreenGui.Parent = secureParent
 
--- // [برمجة الأيقونة الدائرية الصغيرة M1V]
+-- إنشاء الأيقونة الحمراء الصغيرة الدائرية M1V
 local IconButton = Instance.new("TextButton")
 IconButton.Name = generateRandomName()
 IconButton.Size = UDim2.new(0, 50, 0, 50)
-IconButton.Position = UDim2.new(0, 30, 0, 40) -- موضع الأيقونة على الشاشة
-IconButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50) -- لون أحمر ناصع
+IconButton.Position = UDim2.new(0, 30, 0, 40)
+IconButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 IconButton.Text = "M1V"
 IconButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 IconButton.TextSize = 14
 IconButton.Font = Enum.Font.SourceSansBold
 IconButton.Active = true
-IconButton.Draggable = true -- تتيح لك سحب وتحريك الأيقونة الدائرية في أي مكان بالماوس
+IconButton.Draggable = true
 IconButton.Parent = ScreenGui
 
 local IconCorner = Instance.new("UICorner")
-IconCorner.CornerRadius = UDim.new(1, 0) -- جعل الزر دائرياً تماماً كأيقونة
+IconCorner.CornerRadius = UDim.new(1, 0)
 IconCorner.Parent = IconButton
 
 -- اللوحة الرئيسية الكبيرة (Main Panel)
@@ -59,14 +59,14 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true -- تظهر الواجهة الافتراضية مع الأيقونة
+MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
 
--- [الربط الذكي]: عند الضغط على الأيقونة الدائرية M1V تختفي اللوحة الكبيرة أو تظهر (Toggle Visibility)
+-- برمجة زر الـ M1V لإخفاء وإظهار اللوحة الكبيرة يدوياً
 IconButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
@@ -218,6 +218,7 @@ local function refreshPlayerList()
     PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 29)
 end
 
+-- // إصلاح وإكمال الأسطر الناقصة والمقطوعة التي أرسلتها
 Players.PlayerAdded:Connect(refreshPlayerList)
 Players.PlayerRemoving:Connect(refreshPlayerList)
 refreshPlayerList()
@@ -267,3 +268,7 @@ local function getClosestPlayerInZone()
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and not whitelistedPlayers[player.Name] and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
+            
+            if onScreen then
