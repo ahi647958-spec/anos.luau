@@ -11,12 +11,34 @@ local FOV_RADIUS = 150
 
 local whitelistedPlayers = {}
 
+-- توليد اسم عشوائي تماماً للواجهة لتخطي فلاتر فحص الأسماء في San Aurie
+local function generateRandomName()
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local length = math.random(10, 20)
+    local randomString = ""
+    for i = 1, length do
+        local rand = math.random(1, #chars)
+        randomString = randomString .. string.sub(chars, rand, rand)
+    end
+    return randomString
+end
+
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SecureDiagnosticPanel_v9"
+ScreenGui.Name = generateRandomName()
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- محاولة الحقن داخل CoreGui أولاً لأنه مخفي عن حماية الماب، وإذا فشل يتوجه للـ PlayerGui
+local secureParent = nil
+pcall(function()
+    secureParent = game:GetService("CoreGui")
+end)
+if not secureParent then
+    secureParent = LocalPlayer:WaitForChild("PlayerGui")
+end
+ScreenGui.Parent = secureParent
 
 local MainFrame = Instance.new("Frame")
+MainFrame.Name = generateRandomName()
 MainFrame.Size = UDim2.new(0, 380, 0, 210)
 MainFrame.Position = UDim2.new(0, 30, 0, 100)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -30,7 +52,7 @@ MainCorner.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 190, 0, 30)
-Title.Text = "Anticheat Tester v9"
+Title.Text = "Diagnostic System v9"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
 Title.Font = Enum.Font.SourceSansBold
@@ -262,28 +284,3 @@ end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.LeftControl then
-        mouseUnlocked = not mouseUnlocked
-        if mouseUnlocked then
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        else
-            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-        end
-    end
-    
-    if input.KeyCode == Enum.KeyCode.A and not gameProcessed then
-        espEnabled = not espEnabled
-        updateESPStatus()
-    end
-    
-    if input.KeyCode == Enum.KeyCode.E and not gameProcessed then
-        aimbotEnabled = not aimbotEnabled
-        updateAimbotStatus()
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if mouseUnlocked then
-        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-    end
-
-    if AreaFrame.Visible then
