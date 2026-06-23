@@ -1,6 +1,7 @@
 -- [[ m1v ADVANCED SYSTEM - PART 1: MATRIX & INTERFACE ]] --
 if not _G.m1v_Config then
     _G.m1v_Config = {
+        MainFrame.Draggable = true
         espEnabled = true,
         aimbotEnabled = true,
         FOV_RADIUS = 150,
