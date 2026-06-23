@@ -1,3 +1,34 @@
+-- 1. بناء الواجهة الرئيسية (Main Frame)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 350, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Visible = false -- كتكون مخبية ف الأول
+MainFrame.Parent = ScreenGui
+
+-- 2. زيادة زر التحكم (Toggle Button) وسط نفس الكود
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 45, 0, 45)
+ToggleButton.Position = UDim2.new(0, 20, 0, 20)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ToggleButton.Text = "⚡"
+ToggleButton.TextColor3 = Color3.fromRGB(0, 255, 150)
+ToggleButton.TextSize = 20
+ToggleButton.Parent = ScreenGui
+
+-- إضافة حواف دائرية للزر
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = ToggleButton
+
+-- 3. دمج الوظيفة (الربط ديريكت حيت الزر والواجهة ف نفس السكريبت)
+ToggleButton.MouseButton1Click:Connect(function()
+    -- الكود هنا كيقدر يشوف 'MainFrame' ديريكت حيت معرف الفوق
+    MainFrame.Visible = not MainFrame.Visible
+end)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
