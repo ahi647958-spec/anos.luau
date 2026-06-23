@@ -1,15 +1,27 @@
--- [[ Diagnostic System v10 - Merged with Toggle Button Interface ]] --
+-- [[ m1v Comprehensive Test Suite - Stealth Fallback ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- تفعيل الخصائص تلقائياً عند تشغيل السكربت للفحص
+-- إعدادات التشغيل التلقائي
 local espEnabled = true
 local aimbotEnabled = true
 local FOV_RADIUS = 150
 local whitelistedPlayers = {}
+
+-- دالة الإشعارات الجانبية باسم النظام الجديد
+local function notify(title, text)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title;
+            Text = text;
+            Duration = 4;
+        })
+    end)
+end
 
 -- توليد اسم عشوائي لتخطي فلاتر فحص الأسماء المحلية
 local function generateRandomName()
@@ -33,49 +45,47 @@ pcall(function() secureParent = game:GetService("CoreGui") end)
 if not secureParent then secureParent = LocalPlayer:WaitForChild("PlayerGui") end
 ScreenGui.Parent = secureParent
 
--- 1. بناء الواجهة الرئيسية (Main Frame)
+-- 1. بناء الواجهة الرئيسية
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = generateRandomName()
-MainFrame.Size = UDim2.new(0, 380, 0, 210)
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -105) -- ممركزة في وسط الشاشة تماماً
+MainFrame.Size = UDim2.new(0, 380, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -125)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = false -- كتكون مخبية ف الأول كما طلبت
+MainFrame.Visible = false -- تبدأ مخفية
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
 
--- 2. زيادة زر التحكم (Toggle Button) وسط نفس الكود
+-- 2. زر التحكم الخارجي في الإخفاء والإظهار (⚡)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = generateRandomName()
 ToggleButton.Size = UDim2.new(0, 45, 0, 45)
-ToggleButton.Position = UDim2.new(0, 20, 0, 20) -- موقع الزر أعلى اليسار
+ToggleButton.Position = UDim2.new(0, 20, 0, 20)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 ToggleButton.Text = "m1v"
 ToggleButton.TextColor3 = Color3.fromRGB(0, 255, 150)
 ToggleButton.TextSize = 20
 ToggleButton.Parent = ScreenGui
 
--- إضافة حواف دائرية للزر ليعطي مظهر جذاب
 local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
--- 3. ربط وظيفة الإخفاء والإظهار عند الضغط على الزر ديريكت
 ToggleButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- [ محتويات وعناصر الواجهة الداخلية ] --
+-- 3. محتويات الواجهة وعناصر التصميم الداخلي باسم m1v
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 190, 0, 30)
-Title.Text = "San Aurie Test v10"
+Title.Text = "m1v" -- تعديل الاسم هنا بالواجهة
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 13
+Title.TextSize = 14
 Title.Font = Enum.Font.SourceSansBold
 Title.BackgroundTransparency = 1
 Title.Parent = MainFrame
@@ -90,6 +100,7 @@ Hint.Font = Enum.Font.SourceSansItalic
 Hint.BackgroundTransparency = 1
 Hint.Parent = MainFrame
 
+-- زر الـ ESP
 local TagButton = Instance.new("TextButton")
 TagButton.Size = UDim2.new(0, 160, 0, 35)
 TagButton.Position = UDim2.new(0, 15, 0, 60)
@@ -104,6 +115,7 @@ local TagCorner = Instance.new("UICorner")
 TagCorner.CornerRadius = UDim.new(0, 6)
 TagCorner.Parent = TagButton
 
+-- زر الـ Aimbot
 local LockButton = Instance.new("TextButton")
 LockButton.Size = UDim2.new(0, 160, 0, 35)
 LockButton.Position = UDim2.new(0, 15, 0, 110)
@@ -118,6 +130,22 @@ local LockCorner = Instance.new("UICorner")
 LockCorner.CornerRadius = UDim.new(0, 6)
 LockCorner.Parent = LockButton
 
+-- زر تخطي السجن (Bypass Jail)
+local JailButton = Instance.new("TextButton")
+JailButton.Size = UDim2.new(0, 160, 0, 35)
+JailButton.Position = UDim2.new(0, 15, 0, 160)
+JailButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+JailButton.Text = "Bypass Jail"
+JailButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+JailButton.TextSize = 14
+JailButton.Font = Enum.Font.SourceSansBold
+JailButton.Parent = MainFrame
+
+local JailCorner = Instance.new("UICorner")
+JailCorner.CornerRadius = UDim.new(0, 6)
+JailCorner.Parent = JailButton
+
+-- قائمة اللاعبين والـ Whitelist الجانبية
 local ListTitle = Instance.new("TextLabel")
 ListTitle.Size = UDim2.new(0, 170, 0, 30)
 ListTitle.Position = UDim2.new(0, 195, 0, 5)
@@ -129,7 +157,7 @@ ListTitle.BackgroundTransparency = 1
 ListTitle.Parent = MainFrame
 
 local PlayerListFrame = Instance.new("ScrollingFrame")
-PlayerListFrame.Size = UDim2.new(0, 170, 0, 155)
+PlayerListFrame.Size = UDim2.new(0, 170, 0, 195)
 PlayerListFrame.Position = UDim2.new(0, 195, 0, 35)
 PlayerListFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 PlayerListFrame.BorderSizePixel = 0
@@ -141,6 +169,7 @@ local ListLayout = Instance.new("UIListLayout")
 ListLayout.Padding = UDim.new(0, 4)
 ListLayout.Parent = PlayerListFrame
 
+-- دائرة الـ FOV المرئية للـ Aimbot
 local AreaFrame = Instance.new("Frame")
 AreaFrame.Size = UDim2.new(0, FOV_RADIUS * 2, 0, FOV_RADIUS * 2)
 AreaFrame.BackgroundTransparency = 1
@@ -156,7 +185,7 @@ local UICornerArea = Instance.new("UICorner")
 UICornerArea.CornerRadius = UDim.new(1, 0)
 UICornerArea.Parent = AreaFrame
 
--- تحديث حالة الـ ESP والـ Aimbot يدوياً من داخل الأزرار
+-- تشغيل منطق الأزرار (ESP & Aimbot Toggle)
 TagButton.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
     TagButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
@@ -170,6 +199,40 @@ LockButton.MouseButton1Click:Connect(function()
     AreaFrame.Visible = aimbotEnabled
 end)
 
+-- ربط منطق تخطي السجن السري (Stealth Bypass)
+JailButton.MouseButton1Click:Connect(function()
+    notify("m1v System", "Analyzing Jail System...")
+    task.wait(0.5)
+    
+    local policeEvents = ReplicatedStorage:FindFirstChild("PoliceEvents")
+    if policeEvents then
+        local releaseEvent = policeEvents:FindFirstChild("RequestRelease")
+        if releaseEvent then
+            releaseEvent:FireServer(LocalPlayer)
+            notify("m1v Success", "Unjail request sent to Server!")
+        else
+            -- انتقال صامت بدون كشف الطريقة
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = CFrame.new(150, 10, -250) 
+                notify("m1v Success", "Unjail system executed successfully.")
+            else
+                notify("m1v Error", "Execution failed. Character not ready.")
+            end
+        end
+    else
+        -- انتقال صامت في حالة عدم وجود المجلد
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.CFrame = CFrame.new(150, 10, -250) 
+            notify("m1v Success", "Unjail system executed successfully.")
+        else
+            notify("m1v Error", "Execution failed. Character not ready.")
+        end
+    end
+end)
+
+-- تحديث وتعبئة قائمة اللاعبين
 local function refreshPlayerList()
     for _, child in ipairs(PlayerListFrame:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
@@ -207,66 +270,3 @@ local function refreshPlayerList()
                     PButton.Text = player.Name .. " [SAFE]"
                 end
             end)
-            PButton.Parent = PlayerListFrame
-        end
-    end
-    PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 29)
-end
-
-Players.PlayerAdded:Connect(refreshPlayerList)
-Players.PlayerRemoving:Connect(refreshPlayerList)
-refreshPlayerList()
-
--- [[ تشغيل الـ ESP وجلب البيانات ]] --
-local function applyVisualTag(player)
-    if player == LocalPlayer then return end
-    
-    local function setupBillboard(character)
-        local head = character:WaitForChild("Head", 10)
-        if not head then return end
-        
-        local oldTag = head:FindFirstChild("DiagnosticLabel")
-        if oldTag then oldTag:Destroy() end
-        
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = "DiagnosticLabel"
-        billboard.Size = UDim2.new(0, 150, 0, 50)
-        billboard.AlwaysOnTop = true
-        billboard.MaxDistance = math.huge
-        billboard.StudsOffset = Vector3.new(0, 2, 0)
-        billboard.Enabled = espEnabled
-        billboard.Parent = head
-        
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Text = player.Name
-        label.TextColor3 = Color3.fromRGB(255, 0, 0)
-        label.TextSize = 14
-        label.Font = Enum.Font.SourceSansBold
-        label.Parent = billboard
-        
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "ESPHighlight"
-        highlight.Adornee = character
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-        highlight.FillTransparency = 0.5
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.OutlineTransparency = 0
-        highlight.Enabled = espEnabled
-        highlight.Parent = character
-    end
-    
-    if player.Character then setupBillboard(player.Character) end
-    player.CharacterAdded:Connect(setupBillboard)
-end
-
-for _, p in ipairs(Players:GetPlayers()) do applyVisualTag(p) end
-Players.PlayerAdded:Connect(applyVisualTag)
-
--- [[ حسابات الـ Aimbot والـ FOV ]] --
-local function getClosestPlayerInFOV()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-    local mousePos = UserInputService:GetMouseLocation()
-    
