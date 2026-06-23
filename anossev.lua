@@ -6,10 +6,11 @@ local Camera = workspace.CurrentCamera
 
 local espEnabled = false
 local aimbotEnabled = false
+local mouseUnlocked = false
 local FOV_RADIUS = 150
 local whitelistedPlayers = {}
 
--- توليد اسم عشوائي تماماً للواجهة لتخطي فلاتر فحص الأسماء
+-- دالة لتوليد أسماء عشوائية تماماً لعناصر الواجهة لتخطي فلاتر الحظر
 local function generateRandomName()
     local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     local length = math.random(10, 20)
@@ -31,6 +32,25 @@ pcall(function() secureParent = game:GetService("CoreGui") end)
 if not secureParent then secureParent = LocalPlayer:WaitForChild("PlayerGui") end
 ScreenGui.Parent = secureParent
 
+-- إنشاء الأيقونة الحمراء الصغيرة الدائرية M1V
+local IconButton = Instance.new("TextButton")
+IconButton.Name = generateRandomName()
+IconButton.Size = UDim2.new(0, 50, 0, 50)
+IconButton.Position = UDim2.new(0, 30, 0, 40)
+IconButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+IconButton.Text = "M1V"
+IconButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+IconButton.TextSize = 14
+IconButton.Font = Enum.Font.SourceSansBold
+IconButton.Active = true
+IconButton.Draggable = true
+IconButton.Parent = ScreenGui
+
+local IconCorner = Instance.new("UICorner")
+IconCorner.CornerRadius = UDim.new(1, 0)
+IconCorner.Parent = IconButton
+
+-- اللوحة الرئيسية الكبيرة (Main Panel)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = generateRandomName()
 MainFrame.Size = UDim2.new(0, 380, 0, 210)
@@ -38,12 +58,18 @@ MainFrame.Position = UDim2.new(0, 30, 0, 100)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true -- إضافة ميزة سحب الواجهة لتسهيل التجربة
+MainFrame.Draggable = true
+MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
+
+-- برمجة زر الـ M1V لإخفاء وإظهار اللوحة الكبيرة يدوياً
+IconButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 190, 0, 30)
@@ -57,7 +83,7 @@ Title.Parent = MainFrame
 local Hint = Instance.new("TextLabel")
 Hint.Size = UDim2.new(0, 190, 0, 20)
 Hint.Position = UDim2.new(0, 0, 0, 25)
-Hint.Text = "Hold [Right Click] to Lock Target"
+Hint.Text = "Press [A] for ESP | [E] for Aimbot"
 Hint.TextColor3 = Color3.fromRGB(160, 160, 160)
 Hint.TextSize = 11
 Hint.Font = Enum.Font.SourceSansItalic
@@ -130,12 +156,6 @@ local UICornerArea = Instance.new("UICorner")
 UICornerArea.CornerRadius = UDim.new(1, 0)
 UICornerArea.Parent = AreaFrame
 
--- تحديث موقع دائرة الـ FOV لتتبع الماوس بدقة
-RunService.RenderStepped:Connect(function()
-    local mousePos = UserInputService:GetMouseLocation()
-    AreaFrame.Position = UDim2.new(0, mousePos.X - FOV_RADIUS, 0, mousePos.Y - FOV_RADIUS)
-end)
-
 local function updateESPStatus()
     TagButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
     TagButton.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
@@ -198,11 +218,11 @@ local function refreshPlayerList()
     PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 29)
 end
 
+-- // إصلاح وإكمال الأسطر الناقصة والمقطوعة التي أرسلتها
 Players.PlayerAdded:Connect(refreshPlayerList)
 Players.PlayerRemoving:Connect(refreshPlayerList)
 refreshPlayerList()
 
--- وظيفة تحديث الـ ESP الحقيقي وجلب البيانات من السيرفر
 local function applyVisualTag(player)
     if player == LocalPlayer then return end
     
@@ -230,29 +250,8 @@ local function applyVisualTag(player)
         label.Font = Enum.Font.SourceSansBold
         label.TextWrapped = true
         label.Parent = billboard
+        
         billboard.Parent = head
-
-        -- حلقة تكرار لتحديث البيانات ديناميكياً
-        task.spawn(function()
-            while character.Parent and billboard.Parent do
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                local hp = humanoid and math.floor(humanoid.Health) or 0
-                local maxHp = humanoid and math.floor(humanoid.MaxHealth) or 100
-                
-                local localChar = LocalPlayer.Character
-                local dist = "N/A"
-                if localChar and localChar:FindFirstChild("HumanoidRootPart") and character:FindFirstChild("HumanoidRootPart") then
-                    dist = math.floor((localChar.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude) .. "m"
-                end
-                
-                local currentItem = "None"
-                local tool = character:FindFirstChildOfClass("Tool")
-                if tool then currentItem = tool.Name end
-                
-                label.Text = string.format("%s\n[HP: %d/%d] [Dist: %s]\n[Item: %s]", player.Name, hp, maxHp, dist, currentItem)
-                task.wait(0.2)
-            end
-        end)
     end
     
     if player.Character then setupBillboard(player.Character) end
@@ -269,40 +268,7 @@ local function getClosestPlayerInZone()
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and not whitelistedPlayers[player.Name] and player.Character and player.Character:FindFirstChild("Head") then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid.Health > 0 then -- التأكد أن اللاعب ليس ميتاً
-                local head = player.Character.Head
-                local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
-                
-                if onScreen then
-                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - mousePosition).Magnitude
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        closestPlayer = player
-                    end
-                end
-            end
-        end
-    end
-    return closestPlayer
-end
-
--- تشغيل الأيم بوت عند الضغط المطول على الزر الأيمن للماوس
-RunService.RenderStepped:Connect(function()
-    if aimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local target = getClosestPlayerInZone()
-        if target and target.Character and target.Character:FindFirstChild("Head") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
-        end
-    end
-end)
-
-TagButton.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    updateESPStatus()
-end)
-
-LockButton.MouseButton1Click:Connect(function()
-    aimbotEnabled = not aimbotEnabled
-    updateAimbotStatus()
-end)
+            local head = player.Character.Head
+            local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
+            
+            if onScreen then
