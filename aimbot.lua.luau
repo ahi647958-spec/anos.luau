@@ -1,4 +1,4 @@
--- // إعدادات الاختبار والاختصارات للمحاقن (نسخة مصححة 100%)
+-- // إعدادات الاختبار والاختصارات للمحاقن (نسخة تدعم الـ Friendly Whitelist)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -13,7 +13,7 @@ local FOV_RADIUS = 150
 
 -- // 1. إنشاء واجهة المستخدم (GUI) المستقرة
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AnticheatTestMenu_Fixed"
+ScreenGui.Name = "AnticheatTestMenu_Friendly"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -30,33 +30,10 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
 
--- كود حديث وبديل لسحب وتحريك اللوحة بالماوس بدون استخدام .Draggable الملغية
-local dragging, dragInput, dragStart, startPos
-local function update(input)
-    local delta = input.Position - dragStart
-    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then update(input) end
-end)
-
 -- عنوان اللوحة
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "Anticheat Tester v3"
+Title.Text = "Anticheat Tester v5"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 13
 Title.Font = Enum.Font.SourceSansBold
@@ -120,13 +97,16 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = CircleFrame
 
--- // 2. نظام الـ ESP
+-- // 2. نظام الـ ESP المستقر
 local function applyESP(player)
     if player == LocalPlayer then return end
+    
     local function setupBillboard(character)
         local head = character:WaitForChild("Head", 10)
         if not head then return end
-        if head:FindFirstChild("TestESP") then head.TestESP:Destroy() end
+        
+        local oldESP = head:FindFirstChild("TestESP")
+        if oldESP then oldESP:Destroy() end
         
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "TestESP"
@@ -143,8 +123,10 @@ local function applyESP(player)
         label.TextSize = 13
         label.Font = Enum.Font.SourceSansBold
         label.Parent = billboard
+        
         billboard.Parent = head
     end
+    
     if player.Character then setupBillboard(player.Character) end
     player.CharacterAdded:Connect(setupBillboard)
 end
@@ -152,14 +134,34 @@ end
 for _, player in ipairs(Players:GetPlayers()) do applyESP(player) end
 Players.PlayerAdded:Connect(applyESP)
 
--- // 3. نظام الـ Aimbot الدائري
+-- // 3. دالة التحقق من الحلفاء والفرق (Friendly Whitelist Check)
+local function isFriendly(player)
+    -- التجاوز إذا كان اللاعب في نفس الفريق
+    if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
+        return true
+    end
+    
+    -- التجاوز إذا كان اللاعب صديقاً مسجلاً في حسابك على روبلوكس
+    local isFriend = false
+    pcall(function()
+        isFriend = LocalPlayer:IsFriendsWith(player.UserId)
+    end)
+    if isFriend then
+        return true
+    end
+    
+    return false
+end
+
+-- // 4. نظام الـ Aimbot الدائري الذكي مع فحص الحلفاء
 local function getClosestPlayerInFOV()
     local closestPlayer = nil
     local shortestDistance = FOV_RADIUS
     local mousePosition = UserInputService:GetMouseLocation()
 
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+        -- شرط إضافي: التأكد من أنه ليس حليفاً (not isFriendly) قبل استهدافه
+        if player ~= LocalPlayer and not isFriendly(player) and player.Character and player.Character:FindFirstChild("Head") then
             local head = player.Character.Head
             local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
             
@@ -175,7 +177,7 @@ local function getClosestPlayerInFOV()
     return closestPlayer
 end
 
--- // 4. برمجة أزرار الواجهة بالماوس (Tap Toggle)
+-- // 5. برمجة أزرار الواجهة بالماوس (Tap Toggle)
 ESPButton.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
     if espEnabled then
@@ -207,7 +209,7 @@ AimButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- // 5. تحرير الفأرة وإظهار السهم
+-- // 6. تحرير الفأرة وإظهار السهم
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.LeftControl then
         mouseUnlocked = not mouseUnlocked
@@ -219,7 +221,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- // 6. حلقة التحديث المستمر
+-- // 7. حلقة التحديث المستمر
 RunService.RenderStepped:Connect(function()
     if mouseUnlocked then
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -234,7 +236,7 @@ RunService.RenderStepped:Connect(function()
         local targetPlayer = getClosestPlayerInFOV()
         if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
             local headPos = targetPlayer.Character.Head.Position
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, headPos)
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, headPos)
         end
     end
 end)
