@@ -10,7 +10,6 @@ local mouseUnlocked = false
 local FOV_RADIUS = 150
 local whitelistedPlayers = {}
 
--- دالة لتوليد أسماء عشوائية تماماً لتخطي فلاتر فحص الأسماء
 local function generateRandomName()
     local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     local length = math.random(10, 20)
@@ -26,7 +25,6 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = generateRandomName()
 ScreenGui.ResetOnSpawn = false
 
--- تكتيك الحقن الآمن لتفادي فلاتر السيرفر
 local secureParent = nil
 pcall(function() 
     secureParent = game:GetService("CoreGui") 
@@ -36,13 +34,12 @@ if not secureParent then
 end
 ScreenGui.Parent = secureParent
 
--- // 1. إنشاء وتصميم الزر المربع الصغير العصري (⚡) من الصفر
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = generateRandomName()
 ToggleButton.Size = UDim2.new(0, 45, 0, 45)
 ToggleButton.Position = UDim2.new(0, 20, 0, 20)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-ToggleButton.Text = "⚡"
+ToggleButton.Text = "m1v"
 ToggleButton.TextColor3 = Color3.fromRGB(0, 255, 140)
 ToggleButton.TextSize = 22
 ToggleButton.Font = Enum.Font.SourceSansBold
@@ -59,7 +56,6 @@ btnStroke.Color = Color3.fromRGB(45, 45, 45)
 btnStroke.Thickness = 1.5
 btnStroke.Parent = ToggleButton
 
--- // 2. إنشاء وتصميم اللوحة الرئيسية الكبيرة (Main Panel)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = generateRandomName()
 MainFrame.Size = UDim2.new(0, 380, 0, 210)
@@ -75,7 +71,6 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
 
--- ربط كليكة زر ⚡ لإخفاء وإظهار الشاشة الكبيرة
 ToggleButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
@@ -165,15 +160,10 @@ local UICornerArea = Instance.new("UICorner")
 UICornerArea.CornerRadius = UDim.new(1, 0)
 UICornerArea.Parent = AreaFrame
 
--- // 3. الدوال المركزية لمراقبة حالة الـ ESP والـ Aimbot والـ الألوان
 local function updateESPStatus()
-    if espEnabled then
-        TagButton.Text = "ESP: ON"
-        TagButton.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
-    else
-        TagButton.Text = "ESP: OFF"
-        TagButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-    end
+    TagButton.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+    TagButton.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
+    
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Character and player.Character:FindFirstChild("Head") then
             local billboard = player.Character.Head:FindFirstChild("DiagnosticLabel")
@@ -185,18 +175,11 @@ local function updateESPStatus()
 end
 
 local function updateAimbotStatus()
-    if aimbotEnabled then
-        LockButton.Text = "Aimbot: ON"
-        LockButton.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
-        AreaFrame.Visible = true
-    else
-        LockButton.Text = "Aimbot: OFF"
-        LockButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-        AreaFrame.Visible = false
-    end
+    LockButton.Text = aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
+    LockButton.BackgroundColor3 = aimbotEnabled and Color3.fromRGB(50, 180, 50) or Color3.fromRGB(180, 50, 50)
+    AreaFrame.Visible = aimbotEnabled
 end
 
--- // 4. دالة إدارة قائمة الأسماء المنسدلة (Player Whitelist System)
 local function refreshPlayerList()
     for _, child in ipairs(PlayerListFrame:GetChildren()) do
         if child:IsA("TextButton") then 
@@ -247,7 +230,6 @@ Players.PlayerAdded:Connect(refreshPlayerList)
 Players.PlayerRemoving:Connect(refreshPlayerList)
 refreshPlayerList()
 
--- // 5. نظام إنشاء وتتبع الـ BillboardGui اللانهائي للـ ESP الشامل
 local function applyVisualTag(player)
     if player == LocalPlayer then return end
     
@@ -288,3 +270,4 @@ end
 for _, player in ipairs(Players:GetPlayers()) do 
     applyVisualTag(player) 
 end
+Players.PlayerAdded:Connect(applyVisualTag)
