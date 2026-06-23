@@ -1,5 +1,4 @@
--- [[ m1v ENTERPRISE SECURITY FRAMEWORK - PART 1: CORE ENGINE ]] --
--- Initialize global matrix if not already registered
+-- [[ m1v ADVANCED SYSTEM - PART 1: MATRIX & INTERFACE ]] --
 if not _G.m1v_Config then
     _G.m1v_Config = {
         espEnabled = true,
@@ -8,49 +7,42 @@ if not _G.m1v_Config then
         walkSpeedEnabled = false,
         jumpPowerEnabled = false,
         infiniteJump = false,
-        flightEnabled = false,
         targetSpeed = 16,
         targetJump = 50,
-        flightSpeed = 50,
         espColor = Color3.fromRGB(0, 255, 150),
         aimPart = "Head",
-        aimMethod = "Camera",
         whitelistedPlayers = {},
         espObjects = {},
-        connections = {},
-        logs = {}
+        connections = {}
     }
 end
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Real-time cryptographic naming token generator
 local function generateSecureToken()
-    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_!@"
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_!!"
     local result = ""
-    for i = 1, math.random(18, 32) do
+    for i = 1, math.random(16, 26) do
         local rand = math.random(1, #chars)
         result = result .. string.sub(chars, rand, rand)
     end
     return result
 end
 
--- Find context parent without triggers
-local function findContext()
-    local parent = nil
-    pcall(function() parent = game:GetService("CoreGui") end)
-    if not parent then parent = LocalPlayer:WaitForChild("PlayerGui", 12) end
-    return parent
+local function getSafeContext()
+    local cParent = nil
+    pcall(function() cParent = game:GetService("CoreGui") end)
+    if not cParent then cParent = LocalPlayer:WaitForChild("PlayerGui", 10) end
+    return cParent
 end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = generateSecureToken()
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = findContext()
+ScreenGui.Parent = getSafeContext()
 _G.m1v_Gui = ScreenGui
 
--- Visual Toggle Anchor
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Name = generateSecureToken()
 ToggleButton.Size = UDim2.new(0, 45, 0, 45)
@@ -61,10 +53,6 @@ ToggleButton.TextColor3 = _G.m1v_Config.espColor
 ToggleButton.TextSize = 22
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Parent = ScreenGui
-
-local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(0, 8)
-ToggleCorner.Parent = ToggleButton
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = generateSecureToken()
@@ -78,10 +66,6 @@ MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
 _G.m1v_MainFrame = MainFrame
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 10)
-MainCorner.Parent = MainFrame
-
 local HeaderFrame = Instance.new("Frame")
 HeaderFrame.Size = UDim2.new(1, 0, 0, 45)
 HeaderFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
@@ -91,7 +75,7 @@ HeaderFrame.Parent = MainFrame
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(0, 300, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
-TitleLabel.Text = "m1v Advanced Framework"
+TitleLabel.Text = "m1v Premium Suite v15"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 16
 TitleLabel.Font = Enum.Font.SourceSansBold
@@ -108,33 +92,23 @@ LeftScroll.Size = UDim2.new(0, 260, 1, -65)
 LeftScroll.Position = UDim2.new(0, 15, 0, 55)
 LeftScroll.BackgroundTransparency = 1
 LeftScroll.ScrollBarThickness = 2
-LeftScroll.CanvasSize = UDim2.new(0, 0, 0, 450)
+LeftScroll.CanvasSize = UDim2.new(0, 0, 0, 480)
 LeftScroll.Parent = MainFrame
 _G.m1v_LeftScroll = LeftScroll
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "m1v Framework",
-    Text = "Part 1 Kernel Loaded successfully.",
+    Title = "m1v Core",
+    Text = "Part 1 Matrix & GUI Loaded Successfully.",
     Duration = 4
 })
--- [[ m1v ENTERPRISE SECURITY FRAMEWORK - PART 2: CONTROL FACTORY ]] --
+-- [[ m1v ADVANCED SYSTEM - PART 2: TUNING ENGINE ]] --
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local LeftScroll = _G.m1v_LeftScroll
 local MainFrame = _G.m1v_MainFrame
 
 if not LeftScroll or not MainFrame then
-    return warn("[m1v Error]: Part 1 structure not detected. Execute Part 1 first.")
-end
-
-local function generateSecureToken()
-    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    local result = ""
-    for i = 1, math.random(10, 20) do
-        local rand = math.random(1, #chars)
-        result = result .. string.sub(chars, rand, rand)
-    end
-    return result
+    return warn("[m1v System Error]: Part 1 is missing. Execute Part 1 first.")
 end
 
 local function createToggleModule(text, order, default, callback)
@@ -170,42 +144,88 @@ local function createToggleModule(text, order, default, callback)
     ac.Parent = actionBtn
     
     local state = default
-    local function refreshView()
+    local function updateUI()
         actionBtn.BackgroundColor3 = state and Color3.fromRGB(38, 143, 85) or Color3.fromRGB(150, 52, 52)
-        actionBtn.Text = state and "ENABLED" or "DISABLED"
+        actionBtn.Text = state and "ON" or "OFF"
     end
-    refreshView()
+    updateUI()
     
     actionBtn.MouseButton1Click:Connect(function()
         state = not state
-        refreshView()
+        updateUI()
         callback(state)
     end)
     
     wrapper.Parent = LeftScroll
 end
 
-createToggleModule("Visual ESP System", 1, _G.m1v_Config.espEnabled, function(s) _G.m1v_Config.espEnabled = s end)
+-- بناء أزرار التحكم في الخصائص الأساسية
+createToggleModule("Visual ESP Engine", 1, _G.m1v_Config.espEnabled, function(s) _G.m1v_Config.espEnabled = s end)
 createToggleModule("Aimbot Tracking", 2, _G.m1v_Config.aimbotEnabled, function(s) _G.m1v_Config.aimbotEnabled = s end)
-createToggleModule("Modify WalkSpeed", 3, _G.m1v_Config.walkSpeedEnabled, function(s) _G.m1v_Config.walkSpeedEnabled = s end)
-createToggleModule("Modify JumpPower", 4, _G.m1v_Config.jumpPowerEnabled, function(s) _G.m1v_Config.jumpPowerEnabled = s end)
-createToggleModule("Infinite Air Jump", 5, _G.m1v_Config.infiniteJump, function(s) _G.m1v_Config.infiniteJump = s end)
+
+-- نظام التحكم الراداري في حجم دائرة الـ FOV (تكبير وتصغير)
+local FOVControlFrame = Instance.new("Frame")
+FOVControlFrame.Size = UDim2.new(1, -5, 0, 42)
+FOVControlFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+FOVControlFrame.LayoutOrder = 3
+FOVControlFrame.Parent = LeftScroll
+
+local FOVLabel = Instance.new("TextLabel")
+FOVLabel.Size = UDim2.new(0, 130, 1, 0)
+FOVLabel.Position = UDim2.new(0, 10, 0, 0)
+FOVLabel.Text = "FOV Size: " .. tostring(_G.m1v_Config.FOV_RADIUS)
+FOVLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+FOVLabel.TextSize = 12
+FOVLabel.Font = Enum.Font.SourceSansBold
+FOVLabel.TextXAlignment = Enum.TextXAlignment.Left
+FOVLabel.BackgroundTransparency = 1
+FOVLabel.Parent = FOVControlFrame
+_G.m1v_FOVLabel = FOVLabel
+
+local MinusBtn = Instance.new("TextButton")
+MinusBtn.Size = UDim2.new(0, 30, 0, 26)
+MinusBtn.Position = UDim2.new(1, -80, 0.5, -13)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+MinusBtn.Text = "-"
+MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinusBtn.TextSize = 16
+MinusBtn.Font = Enum.Font.SourceSansBold
+MinusBtn.Parent = FOVControlFrame
+
+local PlusBtn = Instance.new("TextButton")
+PlusBtn.Size = UDim2.new(0, 30, 0, 26)
+PlusBtn.Position = UDim2.new(1, -40, 0.5, -13)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+PlusBtn.Text = "+"
+PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlusBtn.TextSize = 16
+PlusBtn.Font = Enum.Font.SourceSansBold
+PlusBtn.Parent = FOVControlFrame
+
+MinusBtn.MouseButton1Click:Connect(function()
+    if _G.m1v_Config.FOV_RADIUS > 20 then
+        _G.m1v_Config.FOV_RADIUS = _G.m1v_Config.FOV_RADIUS - 15
+        FOVLabel.Text = "FOV Size: " .. tostring(_G.m1v_Config.FOV_RADIUS)
+    end
+end)
+
+PlusBtn.MouseButton1Click:Connect(function()
+    if _G.m1v_Config.FOV_RADIUS < 600 then
+        _G.m1v_Config.FOV_RADIUS = _G.m1v_Config.FOV_RADIUS + 15
+        FOVLabel.Text = "FOV Size: " .. tostring(_G.m1v_Config.FOV_RADIUS)
+    end
+end)
+
+-- أزرار إضافية للفحص الفيزيائي والمطاطي
+createToggleModule("Modify WalkSpeed", 4, _G.m1v_Config.walkSpeedEnabled, function(s) _G.m1v_Config.walkSpeedEnabled = s end)
+createToggleModule("Modify JumpPower", 5, _G.m1v_Config.jumpPowerEnabled, function(s) _G.m1v_Config.jumpPowerEnabled = s end)
+createToggleModule("Infinite Air Jump", 6, _G.m1v_Config.infiniteJump, function(s) _G.m1v_Config.infiniteJump = s end)
 
 local RightContainer = Instance.new("Frame")
 RightContainer.Size = UDim2.new(0, 250, 1, -85)
 RightContainer.Position = UDim2.new(0, 295, 0, 75)
 RightContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 RightContainer.Parent = MainFrame
-
-local ListTitle = Instance.new("TextLabel")
-ListTitle.Size = UDim2.new(0, 250, 0, 20)
-ListTitle.Position = UDim2.new(0, 295, 0, 52)
-ListTitle.Text = "Bypass Exception Exceptions List:"
-ListTitle.TextColor3 = Color3.fromRGB(160, 160, 160)
-ListTitle.TextSize = 12
-ListTitle.Font = Enum.Font.SourceSansBold
-ListTitle.BackgroundTransparency = 1
-ListTitle.Parent = MainFrame
 
 local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -218,7 +238,7 @@ local ListLayout = Instance.new("UIListLayout")
 ListLayout.Padding = UDim.new(0, 4)
 ListLayout.Parent = ScrollFrame
 
-local function updateWhitelistInterface()
+local function updateWhitelistView()
     for _, c in ipairs(ScrollFrame:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
     local count = 0
     for _, p in ipairs(Players:GetPlayers()) do
@@ -229,12 +249,8 @@ local function updateWhitelistInterface()
             item.Font = Enum.Font.SourceSansBold
             item.TextSize = 12
             item.BackgroundColor3 = _G.m1v_Config.whitelistedPlayers[p.Name] and Color3.fromRGB(35, 75, 125) or Color3.fromRGB(24, 24, 24)
-            item.Text = _G.m1v_Config.whitelistedPlayers[p.Name] and "  " .. p.Name .. " [SAFE_TARGET]" or "  " .. p.Name
+            item.Text = _G.m1v_Config.whitelistedPlayers[p.Name] and "  " .. p.Name .. " [SAFE]" or "  " .. p.Name
             item.TextColor3 = Color3.fromRGB(240, 240, 240)
-            
-            local ic = Instance.new("UICorner")
-            ic.CornerRadius = UDim.new(0, 4)
-            ic.Parent = item
             
             item.MouseButton1Click:Connect(function()
                 if _G.m1v_Config.whitelistedPlayers[p.Name] then
@@ -242,7 +258,7 @@ local function updateWhitelistInterface()
                 else
                     _G.m1v_Config.whitelistedPlayers[p.Name] = true
                 end
-                updateWhitelistInterface()
+                updateWhitelistView()
             end)
             item.Parent = ScrollFrame
         end
@@ -250,16 +266,16 @@ local function updateWhitelistInterface()
     ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, count * 34)
 end
 
-table.insert(_G.m1v_Config.connections, Players.PlayerAdded:Connect(updateWhitelistInterface))
-table.insert(_G.m1v_Config.connections, Players.PlayerRemoving:Connect(updateWhitelistInterface))
-updateWhitelistInterface()
+Players.PlayerAdded:Connect(updateWhitelistView)
+Players.PlayerRemoving:Connect(updateWhitelistView)
+updateWhitelistView()
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "m1v Framework",
-    Text = "Part 2 Factory loaded successfully.",
+    Title = "m1v Factory",
+    Text = "Part 2 Controls & FOV Tuner Loaded.",
     Duration = 4
 })
--- [[ m1v ENTERPRISE SECURITY FRAMEWORK - PART 3: SIMULATION ENGINE ]] --
+-- [[ m1v ADVANCED SYSTEM - PART 3: SIMULATION CORE ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -270,14 +286,14 @@ local LeftScroll = _G.m1v_LeftScroll
 local ScreenGui = _G.m1v_Gui
 
 if not LeftScroll or not ScreenGui then
-    return warn("[m1v Error]: Architecture sequence interrupted. Verify Part 1 & 2 execution.")
+    return warn("[m1v System Error]: Pipeline interrupted. Verify Part 1 & 2 loading.")
 end
 
--- زر تخطي السجن المتطور والمحاكي للثغرات
+-- زر تخطي السجن الاحترافي
 local BypassFrame = Instance.new("Frame")
 BypassFrame.Size = UDim2.new(1, -5, 0, 40)
 BypassFrame.BackgroundTransparency = 1
-BypassFrame.LayoutOrder = 6
+BypassFrame.LayoutOrder = 7
 BypassFrame.Parent = LeftScroll
 
 local JailBtn = Instance.new("TextButton")
@@ -306,35 +322,30 @@ JailBtn.MouseButton1Click:Connect(function()
     else
         local character = LocalPlayer.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
-            pcall(function() 
-                -- الارتفاع المطور لمنع الاختراق العشوائي والسقوط السليم فوق الخريطة
-                character.HumanoidRootPart.CFrame = CFrame.new(150, 150, -250) 
-            end)
+            pcall(function() character.HumanoidRootPart.CFrame = CFrame.new(150, 150, -250) end)
             game:GetService("StarterGui"):SetCore("SendNotification", {Title = "m1v Success", Text = "Unjail system executed successfully.", Duration = 4})
         end
     end
 end)
 
--- دائرة الـ FOV الرادارية
+-- بناء هيكل الـ FOV الراداري التفاعلي
 local FOVFrame = Instance.new("Frame")
-FOVFrame.Size = UDim2.new(0, _G.m1v_Config.FOV_RADIUS * 2, 0, _G.m1v_Config.FOV_RADIUS * 2)
 FOVFrame.BackgroundTransparency = 1
 FOVFrame.Parent = ScreenGui
 
 local FOVStroke = Instance.new("UIStroke")
 FOVStroke.Thickness = 1.2
-FOVStroke.Color = Color3.fromRGB(0, 255, 150)
+FOVStroke.Color = Color3.fromRGB(255, 0, 0) -- جعل لون الدائرة أحمر واضح ومثير للاهتمام
 FOVStroke.Parent = FOVFrame
 
 local FOVCorner = Instance.new("UICorner")
 FOVCorner.CornerRadius = UDim.new(1, 0)
 FOVCorner.Parent = FOVFrame
 
--- دالة معالجة الـ ESP المطور لجميع اللاعبين
-local function processPlayerESP(player)
+local function constructESP(player)
     if player == LocalPlayer then return end
     
-    local function linkCharacter(character)
+    local function process(character)
         task.defer(function()
             local head = character:WaitForChild("Head", 8)
             local root = character:WaitForChild("HumanoidRootPart", 8)
@@ -385,53 +396,54 @@ local function processPlayerESP(player)
         end)
     end
     
-    if player.Character then linkCharacter(player.Character) end
-    player.CharacterAdded:Connect(linkCharacter)
+    if player.Character then process(player.Character) end
+    player.CharacterAdded:Connect(process)
 end
 
-for _, p in ipairs(Players:GetPlayers()) do processPlayerESP(p) end
-table.insert(_G.m1v_Config.connections, Players.PlayerAdded:Connect(processPlayerESP))
+for _, p in ipairs(Players:GetPlayers()) do constructESP(p) end
+Players.PlayerAdded:Connect(constructESP)
 
--- دالة حساب واختيار أقرب أهداف الـ Aimbot
-local function findViewportTarget()
-    local selectedTarget = nil
-    local minimumDistance = math.huge
-    local mouseLocation = UserInputService:GetMouseLocation()
+local function getTarget()
+    local target = nil
+    local shortest = math.huge
+    local mouse = UserInputService:GetMouseLocation()
     
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and not _G.m1v_Config.whitelistedPlayers[p.Name] then
-            local char = p.Character
-            if char and char:FindFirstChild(_G.m1v_Config.aimPart) and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                local part = char[_G.m1v_Config.aimPart]
-                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
-                
-                if onScreen then
-                    local dist = (Vector2.new(pos.X, pos.Y) - mouseLocation).Magnitude
-                    if dist <= _G.m1v_Config.FOV_RADIUS and dist < minimumDistance then
-                        minimumDistance = dist
-                        selectedTarget = part
-                    end
+        if p ~= LocalPlayer and not _G.m1v_Config.whitelistedPlayers[p.Name] and p.Character and p.Character:FindFirstChild(_G.m1v_Config.aimPart) and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local part = p.Character[_G.m1v_Config.aimPart]
+            local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+            if onScreen then
+                local dist = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
+                if dist <= _G.m1v_Config.FOV_RADIUS and dist < shortest then
+                    shortest = dist
+                    target = part
                 end
             end
         end
     end
-    return selectedTarget
+    return target
 end
 
--- معالجة نظام الـ Air Jumping المتتابع
-table.insert(_G.m1v_Config.connections, UserInputService.JumpRequest:Connect(function()
+UserInputService.JumpRequest:Connect(function()
     if _G.m1v_Config.infiniteJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         pcall(function() LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end)
     end
-end))
+end)
 
--- حلقة التزامن والمحاكاة المطلقة (Render Runtime)
-table.insert(_G.m1v_Config.connections, RunService.RenderStepped:Connect(function()
+-- حلقة التزامن والمزامنة الرياضية المستمرة
+RunService.RenderStepped:Connect(function()
     local mouse = UserInputService:GetMouseLocation()
-    FOVFrame.Position = UDim2.new(0, mouse.X - _G.m1v_Config.FOV_RADIUS, 0, mouse.Y - _G.m1v_Config.FOV_RADIUS)
+    local rad = _G.m1v_Config.FOV_RADIUS
+    
+    -- تحديث موقع وحجم دائرة الـ FOV ديناميكياً بناءً على القيمة المخزنة
+    FOVFrame.Size = UDim2.new(0, rad * 2, 0, rad * 2)
+    FOVFrame.Position = UDim2.new(0, mouse.X - rad, 0, mouse.Y - rad)
     FOVFrame.Visible = _G.m1v_Config.aimbotEnabled
     
-    -- معالجة الهياكل والخطوط لكل عنصر في السيرفر بشكل آمن
+    if _G.m1v_FOVLabel then
+        _G.m1v_FOVLabel.Text = "FOV Size: " .. tostring(rad)
+    end
+    
     for name, obj in pairs(_G.m1v_Config.espObjects) do
         pcall(function()
             if obj.RootPart and obj.RootPart.Parent then
@@ -464,24 +476,20 @@ table.insert(_G.m1v_Config.connections, RunService.RenderStepped:Connect(functio
         end)
     end
     
-    -- تنفيذ قفل الكاميرا
     if _G.m1v_Config.aimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local currentTarget = findViewportTarget()
-        if currentTarget then 
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, currentTarget.Position) 
-        end
+        local t = getTarget()
+        if t then Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Position) end
     end
     
-    -- محاكاة الخصائص الفيزيائية المحلية
-    local localCharacter = LocalPlayer.Character
-    if localCharacter and localCharacter:FindFirstChild("Humanoid") then
-        if _G.m1v_Config.walkSpeedEnabled then localCharacter.Humanoid.WalkSpeed = _G.m1v_Config.targetSpeed end
-        if _G.m1v_Config.jumpPowerEnabled then localCharacter.Humanoid.JumpPower = _G.m1v_Config.targetJump end
+    local c = LocalPlayer.Character
+    if c and c:FindFirstChild("Humanoid") then
+        if _G.m1v_Config.walkSpeedEnabled then c.Humanoid.WalkSpeed = _G.m1v_Config.targetSpeed end
+        if _G.m1v_Config.jumpPowerEnabled then c.Humanoid.JumpPower = _G.m1v_Config.targetJump end
     end
-end))
+end)
 
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "m1v Framework",
-    Text = "Part 3 Simulation loaded 100%. All codes active.",
+    Title = "m1v Simulation",
+    Text = "Part 3 Dynamic FOV Matrix Synced 100%.",
     Duration = 5
 })
