@@ -7,7 +7,7 @@ if not _G.m1v_Config then
         FOV_RADIUS = 150,
         aimSmoothness = 5,
         aimPart = "Head",
-        aimKey = Enum.KeyCode.E, -- الزر الافتراضي المختار ف الكيبورد (Clave Key)
+        aimKey = Enum.KeyCode.E,
         playerEsp = false,
         distanceEsp = false,
         itemsEsp = false,
@@ -209,7 +209,6 @@ end
 
 createToggle("Enable m1v Aimbot (FOV Target)", CombatTab, "aimbotEnabled")
 
--- خانة تعيين واختيار أزرار الكيبورد يدوياً (Clave Keybind Settings) بناءً على طلبك الجديد
 createToggle("Set Bind Key to [E Key]", CombatTab, "mouseUnlocked", function(s)
     _G.m1v_Config.aimKey = s and Enum.KeyCode.E or Enum.KeyCode.Space
     game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Keybind Alert", Text = s and "Keybind shifted to E" or "Keybind shifted to Space", Duration = 2})
@@ -229,6 +228,7 @@ createToggle("Enable Player Location ESP", VisualsTab, "playerEsp")
 createToggle("Enable Distance Counter ESP", VisualsTab, "distanceEsp")
 createToggle("Enable Inventory Items ESP", VisualsTab, "itemsEsp")
 
+-- ربط وتحديث ميكانيكية الـ ATM المتقدمة (تفعيل نظام محاكاة الـ Remote)
 createToggle("Activate Master Bypass Switch", ExploitsTab, "exploitMasterEnabled")
 createToggle("Select: ATM Bank Hack", ExploitsTab, "mouseUnlocked", function()
     _G.m1v_Config.selectedExploit = "ATM Bank Hack"
@@ -341,7 +341,6 @@ local function getClosestPlayerInZone()
             local screenPosition, onScreen = Camera:WorldToViewportPoint(player.Character[_G.m1v_Config.aimPart].Position)
             if onScreen then
                 local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - mousePosition).Magnitude
-                -- شرط إضافي: تفعيل التصويب الممركز حصرياً للأهداف التي تقع بداخل دائرة الـ FOV تماماً
                 if distance < shortestDistance then
                     shortestDistance = distance
                     closestPlayer = player
@@ -393,11 +392,16 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
+    -- [[ محاكاة ومحرك اختراق الـ ATM والسيارات الحقيقي والذكي عبر الـ Remote Simulator ]]
     if _G.m1v_Config.exploitMasterEnabled then
         pcall(function()
-            local activePuzzle = workspace:FindFirstChild("Puzzle") or workspace:FindFirstChild("MiniGame")
-            if activePuzzle then 
-                activePuzzle:Destroy() 
+            -- البحث عن شبكة الأحداث (Remote Events) المسؤولة عن العمليات ف ماب San Aurie ومحاولة إرسال إشارات تخطي
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("RemoteEvent") and (_G.m1v_Config.selectedExploit == "ATM Bank Hack" and (string.find(v.Name, "ATM") or string.find(v.Name, "Bank") or string.find(v.Name, "Cash"))) then
+                    v:FireServer(true) -- محاولة إرسال إشارة تأكيد حل اللغز تلقائياً للسيرفر لإجباره على الاستجابة
+                elseif v:IsA("RemoteEvent") and (_G.m1v_Config.selectedExploit == "Vehicle Lock Bypass" and (string.find(v.Name, "Vehicle") or string.find(v.Name, "Car") or string.find(v.Name, "Lock"))) then
+                    v:FireServer(false) -- محاولة فتح أبواب محرك السيارات البعيدة والقريبة
+                end
             end
         end)
     end
@@ -406,7 +410,6 @@ RunService.RenderStepped:Connect(function()
         local targetPlayer = getClosestPlayerInZone()
         if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(_G.m1v_Config.aimPart) then
             local headPos = targetPlayer.Character[_G.m1v_Config.aimPart].Position
-            -- التوجيه الميكانيكي السلس والناعم للهدف الموجود داخل الدائرة حصرياً لتأمين الفحص
             Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, headPos), 1 / _G.m1v_Config.aimSmoothness)
         end
     end
