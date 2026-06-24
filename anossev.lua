@@ -228,7 +228,6 @@ createToggle("Enable Player Location ESP", VisualsTab, "playerEsp")
 createToggle("Enable Distance Counter ESP", VisualsTab, "distanceEsp")
 createToggle("Enable Inventory Items ESP", VisualsTab, "itemsEsp")
 
--- ربط وتحديث ميكانيكية الـ ATM المتقدمة (تفعيل نظام محاكاة الـ Remote)
 createToggle("Activate Master Bypass Switch", ExploitsTab, "exploitMasterEnabled")
 createToggle("Select: ATM Bank Hack", ExploitsTab, "mouseUnlocked", function()
     _G.m1v_Config.selectedExploit = "ATM Bank Hack"
@@ -392,15 +391,14 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- [[ محاكاة ومحرك اختراق الـ ATM والسيارات الحقيقي والذكي عبر الـ Remote Simulator ]]
+    -- [[ تم حذف الـ Cooldown تماماً: السكربت يرسل الإشارات فورياً بأقصى سرعة ]]
     if _G.m1v_Config.exploitMasterEnabled then
         pcall(function()
-            -- البحث عن شبكة الأحداث (Remote Events) المسؤولة عن العمليات ف ماب San Aurie ومحاولة إرسال إشارات تخطي
             for _, v in ipairs(game:GetDescendants()) do
                 if v:IsA("RemoteEvent") and (_G.m1v_Config.selectedExploit == "ATM Bank Hack" and (string.find(v.Name, "ATM") or string.find(v.Name, "Bank") or string.find(v.Name, "Cash"))) then
-                    v:FireServer(true) -- محاولة إرسال إشارة تأكيد حل اللغز تلقائياً للسيرفر لإجباره على الاستجابة
+                    v:FireServer(true)
                 elseif v:IsA("RemoteEvent") and (_G.m1v_Config.selectedExploit == "Vehicle Lock Bypass" and (string.find(v.Name, "Vehicle") or string.find(v.Name, "Car") or string.find(v.Name, "Lock"))) then
-                    v:FireServer(false) -- محاولة فتح أبواب محرك السيارات البعيدة والقريبة
+                    v:FireServer(false)
                 end
             end
         end)
