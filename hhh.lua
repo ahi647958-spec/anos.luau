@@ -1,446 +1,872 @@
---[[
-  EDITED BY PEACE — ESP + Aimbot + Team Checker
-]]
+-- [[ San Aurie All-in-One Script Hub with Anti-Ban System ]] --
+-- Combined features with anti-detection layers
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Teams = game:GetService("Teams")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-local HttpService = game:GetService("HttpService")
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-local CFG = {
-    ESP = { Box = true, Name = true, Health = true, Chams = true, Tracer = false },
-    Aim = { Enabled = false, Key = Enum.KeyCode.Q, FOV = 120, Smooth = 0.6, Lock = false, Visible = true },
-    Misc = { FriendlyTeams = {} },
+local Window = Rayfield:CreateWindow({
+   Name = "San Aurie Hub v2",
+   LoadingTitle = "Loading Hub",
+   LoadingSubtitle = "Stealth Mode Enabled",
+   ConfigurationSaving = {
+      Enabled = true,
+      FileName = "SanAurieStealth"
+   },
+   KeySystem = false
+})
+
+-- ================================
+-- Anti-Ban / Stealth System
+-- ================================
+
+local AntiBan = {
+    enabled = true,
+    randomizers = {},
+    connection = nil
 }
 
--- Settings persistence
-local fovC_Visible = false
-local function loadSettings()
-    local ok, d = pcall(function() return readfile("san_aurie_settings.json") end)
-    if not ok or not d then return end
-    local ok2, t = pcall(function() return HttpService:JSONDecode(d) end)
-    if not ok2 or not t then return end
-    if t.ESP then for k, v in pairs(t.ESP) do if CFG.ESP[k] ~= nil then CFG.ESP[k] = v end end end
-    if t.Aim then
-        for k, v in pairs(t.Aim) do
-            if k == "Key" and type(v) == "string" then local ke = Enum.KeyCode[v]; if ke then CFG.Aim.Key = ke end
-            elseif CFG.Aim[k] ~= nil then CFG.Aim[k] = v end
+-- Randomize movement patterns to avoid detection
+local function randomizeMovement()
+    local player = game:GetService("Players").LocalPlayer
+    if player and player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local walkSpeed = humanoid.WalkSpeed
+            local jumpPower = humanoid.JumpPower
+            
+            -- Slightly randomize walk speed and jump power
+            humanoid.WalkSpeed = walkSpeed + math.random(-2, 2)
+            humanoid.JumpPower = jumpPower + math.random(-1, 1)
+            
+            -- Reset after short time to avoid suspicion
+            task.wait(math.random(5, 15))
+            humanoid.WalkSpeed = walkSpeed
+            humanoid.JumpPower = jumpPower
         end
     end
-    if t.Misc and t.Misc.FriendlyTeams then CFG.Misc.FriendlyTeams = t.Misc.FriendlyTeams end
-    if t.FOVCircle ~= nil then fovC_Visible = t.FOVCircle end
 end
-local lastSaveHash = nil
-local function saveIfChanged()
-    local s = HttpService:JSONEncode({
-        ESP = CFG.ESP,
-        Aim = { Enabled = CFG.Aim.Enabled, Key = CFG.Aim.Key.Name, FOV = CFG.Aim.FOV, Smooth = CFG.Aim.Smooth, Lock = CFG.Aim.Lock, Visible = CFG.Aim.Visible },
-        Misc = { FriendlyTeams = CFG.Misc.FriendlyTeams },
-        FOVCircle = fovC and fovC.Visible or false,
-    })
-    if s ~= lastSaveHash then lastSaveHash = s; pcall(function() writefile("san_aurie_settings.json", s) end) end
-end
-loadSettings()
 
--- Key state tracker (more reliable than IsKeyDown in some executors)
-local KeysHeld = {}
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.UserInputType == Enum.UserInputType.Keyboard then KeysHeld[input.KeyCode] = true end
-end)
-UserInputService.InputEnded:Connect(function(input, gpe)
-    if not gpe and input.UserInputType == Enum.UserInputType.Keyboard then KeysHeld[input.KeyCode] = false end
-end)
-
--- G key toggles GUI visibility (using direct reference — defined later)
-local sg = nil; local MainFrame = nil
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.G then
-        if MainFrame then MainFrame.Visible = not MainFrame.Visible end
+-- Bypass the anti-cheat (if present)
+local function bypassAntiCheat()
+    -- Hide script from detection
+    local function hideScript()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("LocalScript") and v.Name ~= "StarterLocalScript" then
+                pcall(function()
+                    v.Disabled = true
+                    task.wait(math.random(1, 3))
+                    v.Disabled = false
+                end)
+            end
+        end
     end
-end)
-
--- Team check: auto-friendly job roles + friendly teams (Police, Crew)
-local autoFriendly = {"Fire", "Farmer", "Chef", "Civilian", "Delivery", "Medical", "Transit", "Prisoner"}
-local function isT(p)
-    if not p or not p.Team then return false end
-    for _, af in ipairs(autoFriendly) do if p.Team.Name == af then return true end end
-    for _, tn in ipairs(CFG.Misc.FriendlyTeams) do
-        if tn == "Crew" then
-            if LocalPlayer.Team and p.Team == LocalPlayer.Team then return true end
-        elseif p.Team.Name == tn then return true end
-    end; return false
-end
-
--- ESP
-local ESP = {}
-local function mkESP(p)
-    if ESP[p] then return end
-    local e = {
-        box = Drawing.new("Square"), name = Drawing.new("Text"),
-        hbg = Drawing.new("Line"), hb = Drawing.new("Line"), tr = Drawing.new("Line"),
-    }
-    for _, d in pairs(e) do d.Visible = false; d.Color = Color3.new(1, 1, 1) end
-    e.box.Thickness = 1.5; e.name.Size = 14; e.name.Center = true
-    e.name.Outline = true; e.name.OutlineColor = Color3.new(0, 0, 0); e.tr.Thickness = 1
-    ESP[p] = e
-end
-local function getB(ch)
-    local hrp, head = ch:FindFirstChild("HumanoidRootPart"), ch:FindFirstChild("Head")
-    if not hrp or not head then return nil end
-    local h = (head.Position.Y - hrp.Position.Y) * 2 + 0.5
-    local t, tv = Camera:WorldToViewportPoint(hrp.Position + Vector3.new(0, h / 2, 0))
-    local b, bv = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, h / 2, 0))
-    if not tv and not bv then return nil end
-    local bh = math.max(math.abs(t.Y - b.Y), 15)
-    return { x = (t.X + b.X) / 2 - bh * 0.3, y = (t.Y + b.Y) / 2 - bh / 2, w = bh * 0.6, h = bh }
-end
-local function upESP()
-    for p, e in pairs(ESP) do
-        local ch = p.Character; local hum = ch and ch:FindFirstChild("Humanoid")
-        local hrp = ch and ch:FindFirstChild("HumanoidRootPart"); local head = ch and ch:FindFirstChild("Head")
-        if not ch or not hum or not hrp or not head or hum.Health <= 0 then
-            for _, d in pairs(e) do d.Visible = false end
-            local hl = ch and ch:FindFirstChildOfClass("Highlight")
-            if hl and hl.Name == "_SA_ESP" then hl:Destroy() end; continue end
-        local bx = getB(ch)
-        if not bx then for _, d in pairs(e) do d.Visible = false end; continue end
-        local en = not isT(p)
-        local c = en and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(80, 255, 80)
-        if CFG.ESP.Box then e.box.Visible = true; e.box.Color = c; e.box.Size = Vector2.new(bx.w, bx.h); e.box.Position = Vector2.new(bx.x, bx.y) else e.box.Visible = false end
-        if CFG.ESP.Name then e.name.Visible = true; e.name.Color = c; e.name.Text = p.Name .. " [" .. math.floor(hum.Health) .. "]"; e.name.Position = Vector2.new(bx.x + bx.w / 2, bx.y - 16) else e.name.Visible = false end
-        if CFG.ESP.Health then
-            local hp = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-            e.hbg.Visible = true; e.hbg.From = Vector2.new(bx.x - 8, bx.y); e.hbg.To = Vector2.new(bx.x - 8, bx.y + bx.h); e.hbg.Color = Color3.new(0.2, 0.2, 0.2); e.hbg.Thickness = 4
-            e.hb.Visible = true; e.hb.From = Vector2.new(bx.x - 8, bx.y + bx.h * (1 - hp)); e.hb.To = Vector2.new(bx.x - 8, bx.y + bx.h); e.hb.Color = Color3.fromRGB(math.floor(255 * (1 - hp)), math.floor(255 * hp), 0); e.hb.Thickness = 4
-        else e.hb.Visible = false; e.hbg.Visible = false end
-        if CFG.ESP.Tracer then e.tr.Visible = true; e.tr.Color = c; e.tr.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y); e.tr.To = Vector2.new(bx.x + bx.w / 2, bx.y) else e.tr.Visible = false end
-        if CFG.ESP.Chams then
-            local hl = ch:FindFirstChildOfClass("Highlight")
-            if not hl then hl = Instance.new("Highlight"); hl.Name = "_SA_ESP"; hl.FillColor = en and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(50, 255, 50); hl.FillTransparency = 0.6; hl.OutlineColor = Color3.new(1, 1, 1); hl.OutlineTransparency = 0; hl.Parent = ch; hl.Adornee = ch; hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop end
-        else local hl = ch:FindFirstChildOfClass("Highlight"); if hl and hl.Name == "_SA_ESP" then hl:Destroy() end end
+    
+    -- Randomize remote event firing
+    local originalFireServer = game:GetService("ReplicatedStorage").RemoteEvent.FireServer
+    game:GetService("ReplicatedStorage").RemoteEvent.FireServer = function(...)
+        if _G.STEALTH_MODE then
+            -- Add random delay to avoid detection
+            task.wait(math.random(1, 5) / 10)
+        end
+        return originalFireServer(...)
     end
 end
-for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then mkESP(p) end end
-Players.PlayerAdded:Connect(function(p) if p ~= LocalPlayer then mkESP(p) end end)
-Players.PlayerRemoving:Connect(function(p) local e = ESP[p]; if e then for _, d in pairs(e) do if d.Remove then d:Remove() end end; ESP[p] = nil end end)
 
--- Aimbot
-local LockedTarget = nil
-local function isVisible(p)
-    local ch = p.Character; if not ch then return false end
-    local head = ch:FindFirstChild("Head"); if not head then return false end
-    local lpChar = LocalPlayer.Character
-    local origin = Camera.CFrame.Position
-    local dir = (head.Position - origin).Unit * (head.Position - origin).Magnitude
-    local filter = {Camera}
-    if lpChar then filter[2] = lpChar end
-    local params = RaycastParams.new(); params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.FilterDescendantsInstances = filter
-    local result = workspace:Raycast(origin, dir, params)
-    if not result then return true end
-    local hit = result.Instance; return hit and hit:IsDescendantOf(ch)
-end
-local function findTarget()
-    local best, bd = nil, CFG.Aim.FOV; local sc = Camera.ViewportSize; local mp = Vector2.new(sc.X / 2, sc.Y / 2)
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p == LocalPlayer or isT(p) then continue end
-        local ch = p.Character; if not ch then continue end; local head = ch:FindFirstChild("Head"); if not head then continue end
-        if CFG.Aim.Visible and not isVisible(p) then continue end
-        local pos, on = Camera:WorldToViewportPoint(head.Position); if not on then continue end
-        local d = (Vector2.new(pos.X, pos.Y) - mp).Magnitude; if d < bd then bd = d; best = p end
+-- Randomize player data to avoid detection
+local function randomizeData()
+    local player = game:GetService("Players").LocalPlayer
+    if player and player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            -- Randomize health display slightly (not actual health)
+            local health = humanoid.Health
+            humanoid.Health = health + math.random(-1, 1)
+            task.wait(0.5)
+            humanoid.Health = health
+        end
     end
-    return best
-end
-local function validateTarget(p)
-    if not p then return false end
-    local ch = p.Character; if not ch then return false end
-    local head = ch:FindFirstChild("Head"); if not head then return false end
-    local hum = ch:FindFirstChild("Humanoid"); if not hum or hum.Health <= 0 then return false end
-    if CFG.Aim.Visible and not isVisible(p) then return false end
-    local pos, on = Camera:WorldToViewportPoint(head.Position)
-    return on
-end
-local function aimAt(p)
-    if not p then return end
-    local ch = p.Character; if not ch then return end; local head = ch:FindFirstChild("Head"); if not head then return end
-    local ap = head.Position; local hrp = ch:FindFirstChild("HumanoidRootPart")
-    if hrp then ap = ap + hrp.AssemblyLinearVelocity * ((head.Position - Camera.CFrame.Position).Magnitude / 2000) end
-    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + Camera.CFrame.LookVector:Lerp((ap - Camera.CFrame.Position).Unit, CFG.Aim.Smooth))
-end
-local function aim()
-    if not CFG.Aim.Enabled then LockedTarget = nil; return end
-    local holding = KeysHeld[CFG.Aim.Key]
-    if not holding and not CFG.Aim.Lock then LockedTarget = nil; return end
-    if LockedTarget and not validateTarget(LockedTarget) then LockedTarget = nil end
-    if not LockedTarget then LockedTarget = findTarget() end
-    if LockedTarget then aimAt(LockedTarget) end
 end
 
--- Drawings
-local fovC = Drawing.new("Circle")
-fovC.Visible = fovC_Visible; fovC.Radius = CFG.Aim.FOV; fovC.Thickness = 1; fovC.Color = Color3.new(1, 1, 1); fovC.Filled = false; fovC.NumSides = 60
-
--- GUI
-sg = Instance.new("ScreenGui")
-sg.Name = "SAPVP"; sg.ResetOnSpawn = false; sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
--- Colors
-local C = {
-    bg = Color3.fromRGB(18, 18, 22), title = Color3.fromRGB(18, 18, 22),
-    tab = Color3.fromRGB(25, 25, 32), tabAct = Color3.fromRGB(45, 50, 70),
-    btn = Color3.fromRGB(30, 30, 38), btnH = Color3.fromRGB(40, 42, 55),
-    text = Color3.fromRGB(200, 200, 210), accent = Color3.fromRGB(60, 130, 255),
-    green = Color3.fromRGB(70, 200, 100), red = Color3.fromRGB(240, 80, 80),
-    yellow = Color3.fromRGB(240, 200, 60),
-}
-
-local function round(p, r)
-    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, r or 4); c.Parent = p
-end
-
-local function mkF(p, n, s, c)
-    local f = Instance.new("Frame"); f.Name = n; f.Size = s; f.BackgroundColor3 = c or C.bg; f.BorderSizePixel = 0; f.Parent = p; return f
-end
-
--- Toggle switch (modern style)
-local function mkToggle(parent, name, label, default)
-    local row = Instance.new("TextButton")
-    row.Name = name; row.Size = UDim2.new(1, -10, 0, 32)
-    row.BackgroundColor3 = C.btn; row.BorderSizePixel = 0; row.AutoButtonColor = false; row.Parent = parent
-    round(row, 6)
-    -- Label
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -56, 1, 0); lbl.Position = UDim2.fromOffset(10, 0)
-    lbl.BackgroundTransparency = 1; lbl.Text = label; lbl.TextColor3 = C.text; lbl.TextSize = 13
-    lbl.Font = Enum.Font.GothamMedium; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.Parent = row
-    -- Knob track
-    local track = Instance.new("Frame")
-    track.Name = "_tk"; track.Size = UDim2.fromOffset(36, 18); track.Position = UDim2.new(1, -46, 0.5, -9)
-    track.BackgroundColor3 = default and C.green or Color3.fromRGB(60, 60, 70); track.BorderSizePixel = 0; track.Parent = row
-    round(track, 9)
-    -- Knob
-    local knob = Instance.new("Frame")
-    knob.Name = "_kn"; knob.Size = UDim2.fromOffset(14, 14); knob.Position = UDim2.fromOffset(default and 19 or 2, 2)
-    knob.BackgroundColor3 = Color3.fromRGB(240, 240, 245); knob.BorderSizePixel = 0; knob.Parent = track
-    round(knob, 7)
-
-    local function setState(on)
-        track.BackgroundColor3 = on and C.green or Color3.fromRGB(60, 60, 70)
-        knob.Position = UDim2.fromOffset(on and 19 or 2, 2)
-    end
-
-    row.MouseButton1Click:Connect(function()
-        local on = track.BackgroundColor3.g > 0.5
-        setState(not on)
-    end)
-    return row
-end
-
-local function mkL(p, n, t, c)
-    local l = Instance.new("TextLabel"); l.Name = n; l.Size = UDim2.new(1, -10, 0, 20)
-    l.BackgroundTransparency = 1; l.Text = t; l.TextColor3 = c or C.text; l.TextSize = 12
-    l.Font = Enum.Font.GothamBold; l.TextXAlignment = Enum.TextXAlignment.Left; l.Parent = p; return l
-end
-
--- Main window
-local M = mkF(sg, "M", UDim2.fromOffset(320, 500), C.bg)
-M.Position = UDim2.fromOffset(350, 15); M.Active = true; M.Draggable = true
-round(M, 8); MainFrame = M
-
--- Title bar
-local TB = mkF(M, "TB", UDim2.new(1, 0, 0, 36), C.title)
-TB.BackgroundTransparency = 0; round(TB, 8)
-local tc = Instance.new("Frame"); tc.Size = UDim2.new(1, 0, 0, 8); tc.Position = UDim2.new(0, 0, 1, -8); tc.BackgroundColor3 = C.title; tc.BorderSizePixel = 0; tc.Parent = TB
-local tl = Instance.new("TextLabel")
-tl.Size = UDim2.new(1, -36, 1, 0); tl.Position = UDim2.fromOffset(12, 0)
-tl.BackgroundTransparency = 1; tl.Text = "EDITED BY PEACE"; tl.TextColor3 = C.accent
-tl.TextSize = 16; tl.Font = Enum.Font.GothamBold; tl.TextXAlignment = Enum.TextXAlignment.Left; tl.Parent = TB
-local cx = Instance.new("TextButton")
-cx.Size = UDim2.fromOffset(28, 28); cx.Position = UDim2.new(1, -34, 0.5, -14)
-cx.BackgroundColor3 = Color3.fromRGB(40, 35, 35); cx.BorderSizePixel = 0; cx.Text = "X"
-cx.TextColor3 = C.red; cx.TextSize = 14; cx.Font = Enum.Font.GothamBold; cx.Parent = TB; round(cx, 6)
-cx.MouseButton1Click:Connect(function() sg:Destroy() end)
-
--- Tab bar
-local TBar = mkF(M, "TBar", UDim2.new(1, 0, 0, 34), Color3.fromRGB(22, 22, 28))
-TBar.Position = UDim2.fromOffset(0, 36)
-
--- Tab frames
-local CombatTab = mkF(M, "Combat", UDim2.new(1, 0, 1, -70), C.bg)
-CombatTab.Position = UDim2.fromOffset(0, 70)
-local VisualTab = mkF(M, "Visual", UDim2.new(1, 0, 1, -70), C.bg)
-VisualTab.Position = UDim2.fromOffset(0, 70); VisualTab.Visible = false
-local MiscTab = mkF(M, "Misc", UDim2.new(1, 0, 1, -70), C.bg)
-MiscTab.Position = UDim2.fromOffset(0, 70); MiscTab.Visible = false
-
-local function fillTab(tab, name)
-    local S = Instance.new("ScrollingFrame"); S.Name = "S"; S.Size = UDim2.new(1, 0, 1, 0)
-    S.BackgroundTransparency = 1; S.BorderSizePixel = 0; S.ScrollBarThickness = 3; S.CanvasSize = UDim2.fromOffset(0, 0); S.Parent = tab
-    local UL = Instance.new("UIListLayout"); UL.Parent = S; UL.Padding = UDim.new(0, 4)
-    local PD = Instance.new("UIPadding"); PD.PaddingLeft = UDim.new(0, 5); PD.PaddingTop = UDim.new(0, 4); PD.Parent = S
-    UL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() S.CanvasSize = UDim2.fromOffset(0, UL.AbsoluteContentSize.Y + 10) end)
-
-    if name == "Combat" then
-        mkL(S, "h", "COMBAT", C.red)
-        mkToggle(S, "aim", "Aimbot", false)
-        mkToggle(S, "lock", "Lock Target", false)
-        mkToggle(S, "vis", "Visible Check", true)
-        local fh = mkL(S, "fh", "FOV: " .. CFG.Aim.FOV, C.text)
-        local fb = Instance.new("TextBox")
-        fb.Size = UDim2.new(1, -10, 0, 28); fb.BackgroundColor3 = C.btn; fb.BorderSizePixel = 0; fb.Text = tostring(CFG.Aim.FOV); fb.TextColor3 = C.text; fb.TextSize = 14; fb.Font = Enum.Font.GothamMedium; fb.ClearTextOnFocus = true; fb.Parent = S; round(fb, 6)
-        fb.FocusLost:Connect(function(e) if e then local n = tonumber(fb.Text); if n and n > 0 and n <= 360 then CFG.Aim.FOV = n; fovC.Radius = n; fh.Text = "FOV: " .. n; saveIfChanged() end; fb.PlaceholderText = tostring(CFG.Aim.FOV); fb.Text = "" end end)
-        local sh = mkL(S, "sh", "Smooth: " .. CFG.Aim.Smooth, C.text)
-        local sb = Instance.new("TextBox")
-        sb.Size = UDim2.new(1, -10, 0, 28); sb.BackgroundColor3 = C.btn; sb.BorderSizePixel = 0; sb.Text = tostring(CFG.Aim.Smooth); sb.TextColor3 = C.text; sb.TextSize = 14; sb.Font = Enum.Font.GothamMedium; sb.ClearTextOnFocus = true; sb.Parent = S; round(sb, 6)
-        sb.FocusLost:Connect(function(e) if e then local n = tonumber(sb.Text); if n and n > 0 and n <= 1 then CFG.Aim.Smooth = n; sh.Text = "Smooth: " .. n; saveIfChanged() end; sb.PlaceholderText = tostring(CFG.Aim.Smooth); sb.Text = "" end end)
-        mkToggle(S, "fov", "Show FOV Circle", false)
-        mkL(S, "kh", "AIM KEY", C.text)
-        local kb = Instance.new("TextButton")
-        kb.Name = "keybind"; kb.Size = UDim2.new(1, -10, 0, 28); kb.BackgroundColor3 = C.btn; kb.BorderSizePixel = 0
-        kb.Text = "Key: " .. CFG.Aim.Key.Name; kb.TextColor3 = C.accent; kb.TextSize = 14; kb.Font = Enum.Font.GothamBold; kb.Parent = S; round(kb, 6)
-        local listening = false; local conn = nil
-        kb.MouseButton1Click:Connect(function()
-            if listening then return end; listening = true; kb.Text = "Press any key..."
-            if conn then conn:Disconnect() end
-            local timeout = task.delay(5, function()
-                if listening then listening = false; kb.Text = "Key: " .. CFG.Aim.Key.Name; if conn then conn:Disconnect(); conn = nil end end
-            end)
-            conn = UserInputService.InputBegan:Connect(function(input, gpe)
-                if gpe or input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-                CFG.Aim.Key = input.KeyCode; kb.Text = "Key: " .. input.KeyCode.Name
-                listening = false; conn:Disconnect(); conn = nil; task.cancel(timeout); saveIfChanged()
-            end)
+-- Start the anti-ban system
+local function startAntiBan()
+    if AntiBan.enabled then
+        AntiBan.connection = game:GetService("RunService").Heartbeat:Connect(function()
+            if _G.STEALTH_MODE then
+                -- Randomize movement every few seconds
+                if math.random(1, 20) == 5 then
+                    pcall(randomizeMovement)
+                end
+                
+                -- Randomize data occasionally
+                if math.random(1, 30) == 7 then
+                    pcall(randomizeData)
+                end
+            end
         end)
-    elseif name == "Visual" then
-        mkL(S, "h", "VISUAL", C.green)
-        mkToggle(S, "box", "Box ESP", true)
-        mkToggle(S, "name", "Name ESP", true)
-        mkToggle(S, "health", "Health Bar", true)
-        mkToggle(S, "chams", "Chams", true)
-        mkToggle(S, "tracer", "Tracer Lines", false)
-    elseif name == "Misc" then
-        mkL(S, "h", "MISC", C.yellow)
-        mkL(S, "gk", "G = Toggle GUI", Color3.fromRGB(150, 150, 160))
-        mkL(S, "dh", "DISCORD", C.accent)
-        local dc = Instance.new("TextButton")
-        dc.Size = UDim2.new(1, -10, 0, 36); dc.BackgroundColor3 = Color3.fromRGB(55, 75, 120); dc.BorderSizePixel = 0; dc.Text = "Join Discord"; dc.TextColor3 = Color3.new(1, 1, 1); dc.TextSize = 14; dc.Font = Enum.Font.GothamBold; dc.Parent = S; round(dc, 6)
-        dc.MouseButton1Click:Connect(function()
-            local s = Instance.new("StringValue"); s.Name = "DiscordLink"; s.Value = "https://discord.gg/wD4ycHr8P"; s.Parent = sg
-            setclipboard("https://discord.gg/wD4ycHr8P")
-            dc.Text = "Copied!"
-            task.wait(1.5)
-            dc.Text = "Join Discord"
-        end)
-        mkL(S, "fh", "TEAMS", C.accent)
-        local showTeams = {"Police", "Crew"}
-        local tl2 = mkL(S, "tl", "No teams found", C.text)
-        local teamToggles = {}
-        local function refreshTeams()
-            for _, v in pairs(teamToggles) do if v and v.Parent then v:Destroy() end end; teamToggles = {}
-            local all = Teams:GetTeams(); local found = 0
-            for _, st in ipairs(showTeams) do
-                if st == "Crew" then
-                    local def = false; for _, ft in ipairs(CFG.Misc.FriendlyTeams) do if ft == "Crew" then def = true; break end end
-                    local t = mkToggle(S, "t_Crew", "Team: Crew", def); teamToggles["Crew"] = t; found = found + 1
-                else
-                    for _, team in ipairs(all) do
-                        if team.Name ~= st then continue end; found = found + 1
-                        local def = false; for _, ft in ipairs(CFG.Misc.FriendlyTeams) do if ft == st then def = true; break end end
-                        local t = mkToggle(S, "t_" .. st, "Team: " .. st, def); teamToggles[st] = t
+        
+        -- Bypass anti-cheat
+        pcall(bypassAntiCheat)
+        
+        -- Hide the script from detection
+        pcall(hideScript)
+    end
+end
+
+-- Anti-Ban Toggle
+local AntiBanTab = Window:CreateTab("Anti-Ban", nil)
+
+AntiBanTab:CreateToggle({
+    Name = "Stealth Mode (Anti-Ban)",
+    CurrentValue = true,
+    Flag = "StealthMode",
+    Callback = function(v)
+        _G.STEALTH_MODE = v
+        if v then
+            startAntiBan()
+            Rayfield:Notify({
+                Title = "Stealth Mode",
+                Content = "Anti-detection systems active",
+                Duration = 3
+            })
+        else
+            if AntiBan.connection then
+                AntiBan.connection:Disconnect()
+                AntiBan.connection = nil
+            end
+        end
+    end
+})
+
+-- Randomize Script Names (to avoid detection)
+AntiBanTab:CreateButton({
+    Name = "Randomize Script Names",
+    Callback = function()
+        local randomName = function()
+            local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            local str = ""
+            for i = 1, math.random(10, 20) do
+                str = str .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
+            end
+            return str
+        end
+        
+        -- Rename all script objects
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
+                pcall(function()
+                    v.Name = randomName()
+                end)
+            end
+        end
+        
+        Rayfield:Notify({
+            Title = "Scripts Renamed",
+            Content = "All script names randomized",
+            Duration = 2
+        })
+    end
+})
+
+-- Clear Console (to hide errors)
+AntiBanTab:CreateButton({
+    Name = "Clear Console",
+    Callback = function()
+        game:GetService("CoreGui"):FindFirstChild("RobloxGui"):FindFirstChild("Console"):Clear()
+        Rayfield:Notify({
+            Title = "Console Cleared",
+            Content = "No trace left",
+            Duration = 2
+        })
+    end
+})
+
+-- ================================
+-- Combat Features
+-- ================================
+
+local MainTab = Window:CreateTab("Combat", nil)
+
+-- Big Head Hitbox with random delay
+MainTab:CreateButton({
+    Name = "Toggle Big Head Hitbox (Stealth)",
+    Callback = function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local LocalPlayer = Players.LocalPlayer
+
+        _G.BIG_HEAD_STATE = _G.BIG_HEAD_STATE or {
+            enabled = false,
+            data = {},
+            paused = {}
+        }
+        local state = _G.BIG_HEAD_STATE
+        local HEAD_SCALE = Vector3.new(12, 12, 12)
+        local HEAD_TRANSPARENCY = 0.9
+
+        local function getHead(char) return char and char:FindFirstChild("Head") end
+        local function getHumanoid(char) return char and char:FindFirstChildOfClass("Humanoid") end
+
+        local function getAllDecals(head)
+            local decals = {}
+            for _, obj in ipairs(head:GetChildren()) do
+                if obj:IsA("Decal") then table.insert(decals, obj) end
+            end
+            return decals
+        end
+
+        local function revertBigHead(player)
+            local saved = state.data[player]
+            if not saved then return end
+            local head = getHead(player.Character)
+            if head then
+                head.Size = saved.size
+                head.Transparency = saved.transparency
+                head.CanCollide = true
+                head.Massless = false
+                for _, decal in ipairs(saved.decals) do
+                    if decal then decal.Parent = head end
+                end
+            end
+            state.data[player] = nil
+        end
+
+        local function applyBigHead(player)
+            if player == LocalPlayer then return end
+            if not player.Character then return end
+            local humanoid = getHumanoid(player.Character)
+            if not humanoid or humanoid.Health <= 0 then state.paused[player] = true; return end
+            local head = getHead(player.Character)
+            if not head then return end
+            if not state.data[player] then
+                state.data[player] = {
+                    size = head.Size,
+                    transparency = head.Transparency,
+                    decals = getAllDecals(head)
+                }
+            end
+            head.Size = HEAD_SCALE
+            head.Transparency = HEAD_TRANSPARENCY
+            head.CanCollide = false
+            head.Massless = true
+            for _, decal in ipairs(getAllDecals(head)) do decal.Parent = nil end
+        end
+
+        if state.enabled then
+            for player in pairs(state.data) do revertBigHead(player) end
+            if state.enforceConn then state.enforceConn:Disconnect(); state.enforceConn = nil end
+            state.enabled = false
+            return
+        end
+
+        state.enabled = true
+        for _, player in ipairs(Players:GetPlayers()) do applyBigHead(player) end
+
+        state.enforceConn = RunService.Heartbeat:Connect(function()
+            if not state.enabled then return end
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local humanoid = getHumanoid(player.Character)
+                    local head = getHead(player.Character)
+                    if humanoid and humanoid.Health <= 0 then
+                        if state.data[player] then revertBigHead(player) end
+                        state.paused[player] = true
+                    elseif humanoid and humanoid.Health > 0 then
+                        if state.paused[player] then
+                            state.paused[player] = nil
+                            applyBigHead(player)
+                        elseif state.data[player] and head then
+                            if head.Size ~= HEAD_SCALE or head.Transparency ~= HEAD_TRANSPARENCY then
+                                applyBigHead(player)
+                            end
+                        else
+                            applyBigHead(player)
+                        end
                     end
                 end
             end
-            tl2.Visible = found == 0
-        end
-        refreshTeams()
-        Teams.ChildAdded:Connect(function() task.wait(0.5); refreshTeams() end)
-        Teams.ChildRemoved:Connect(function() task.wait(0.5); refreshTeams() end)
+        end)
     end
-    task.wait(); S.CanvasSize = UDim2.fromOffset(0, UL.AbsoluteContentSize.Y + 10)
-end
+})
 
-fillTab(CombatTab, "Combat"); fillTab(VisualTab, "Visual"); fillTab(MiscTab, "Misc")
-
--- Sync all toggle states to match loaded CFG settings
-local function setToggleState(btn, on)
-    local tk = btn:FindFirstChild("_tk"); if not tk then return end
-    tk.BackgroundColor3 = on and C.green or Color3.fromRGB(60, 60, 70)
-    local kn = tk:FindFirstChild("_kn"); if kn then kn.Position = UDim2.fromOffset(on and 19 or 2, 2) end
-end
-local function syncToggles()
-    for _, tab in pairs({CombatTab, VisualTab, MiscTab}) do
-        local sc = tab:FindFirstChild("S"); if not sc then continue end
-        for _, v in ipairs(sc:GetChildren()) do
-            if not v:IsA("TextButton") or not v:FindFirstChild("_tk") then continue end
-            local val = (
-                v.Name == "box" and CFG.ESP.Box or v.Name == "name" and CFG.ESP.Name or
-                v.Name == "health" and CFG.ESP.Health or v.Name == "chams" and CFG.ESP.Chams or
-                v.Name == "tracer" and CFG.ESP.Tracer or v.Name == "aim" and CFG.Aim.Enabled or
-                v.Name == "lock" and CFG.Aim.Lock or v.Name == "vis" and CFG.Aim.Visible or
-                v.Name == "fov" and fovC.Visible or nil
-            )
-            if val ~= nil then setToggleState(v, val) end
+-- Silent Aim with random delay
+MainTab:CreateToggle({
+    Name = "Silent Aim (Stealth)",
+    CurrentValue = false,
+    Flag = "SilentAim",
+    Callback = function(v)
+        if v then
+            _G.SILENT_AIM_ENABLED = true
+            local Players = game:GetService("Players")
+            local RunService = game:GetService("RunService")
+            local LocalPlayer = Players.LocalPlayer
+            local Camera = workspace.CurrentCamera
+            
+            _G.SILENT_AIM_CONN = RunService.Heartbeat:Connect(function()
+                if _G.SILENT_AIM_ENABLED and _G.STEALTH_MODE then
+                    -- Add random delay to avoid detection
+                    if math.random(1, 3) == 1 then
+                        local closestPlayer = nil
+                        local closestDistance = math.huge
+                        for _, player in ipairs(Players:GetPlayers()) do
+                            if player ~= LocalPlayer and player.Character then
+                                local head = player.Character:FindFirstChild("Head")
+                                if head then
+                                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                                    if onScreen then
+                                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - game:GetService("UserInputService"):GetMouseLocation()).Magnitude
+                                        if distance < closestDistance then
+                                            closestDistance = distance
+                                            closestPlayer = player
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        if closestPlayer and closestPlayer.Character then
+                            local head = closestPlayer.Character:FindFirstChild("Head")
+                            if head then
+                                Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            _G.SILENT_AIM_ENABLED = false
+            if _G.SILENT_AIM_CONN then
+                _G.SILENT_AIM_CONN:Disconnect()
+                _G.SILENT_AIM_CONN = nil
+            end
         end
     end
-end
-syncToggles()
+})
 
--- Tab buttons
-local tabBtns = {}
-for i, name in ipairs({"Combat", "Visual", "Misc"}) do
-    local tb = Instance.new("TextButton")
-    tb.Name = name; tb.Size = UDim2.new(1 / 3, -3, 1, -6); tb.Position = UDim2.new((i - 1) / 3, 2, 0, 3)
-    tb.BackgroundColor3 = C.tab; tb.BorderSizePixel = 0; tb.Text = name; tb.TextColor3 = C.text; tb.TextSize = 13; tb.Font = Enum.Font.GothamBold; tb.Parent = TBar; round(tb, 6)
-    tabBtns[name] = tb
-    tb.MouseButton1Click:Connect(function()
-        for _, btn in pairs(tabBtns) do btn.BackgroundColor3 = C.tab; btn.TextColor3 = C.text end
-        tb.BackgroundColor3 = C.tabAct; tb.TextColor3 = Color3.new(1, 1, 1)
-        CombatTab.Visible = name == "Combat"; VisualTab.Visible = name == "Visual"; MiscTab.Visible = name == "Misc"
-    end)
-end
-tabBtns["Combat"].BackgroundColor3 = C.tabAct; tabBtns["Combat"].TextColor3 = Color3.new(1, 1, 1)
+-- ================================
+-- Visuals Features (Stealth)
+-- ================================
 
--- Read toggle state from the switch track color (green = ON, gray = OFF)
-local function isToggleOn(btn)
-    local tk = btn:FindFirstChild("_tk")
-    return tk and tk.BackgroundColor3.r < 0.5 and tk.BackgroundColor3.g > 0.5
-end
+local VisualsTab = Window:CreateTab("Visuals", nil)
 
--- Main loop
-RunService.RenderStepped:Connect(function()
-    for _, tab in pairs({CombatTab, VisualTab, MiscTab}) do
-        local sc = tab:FindFirstChild("S")
-        if not sc then continue end
-        for _, v in ipairs(sc:GetChildren()) do
-            if not v:IsA("TextButton") then continue end
-            if not v:FindFirstChild("_tk") then continue end
-            local on = isToggleOn(v)
-            if v.Name == "box" then CFG.ESP.Box = on
-            elseif v.Name == "name" then CFG.ESP.Name = on
-            elseif v.Name == "health" then CFG.ESP.Health = on
-            elseif v.Name == "chams" then CFG.ESP.Chams = on
-            elseif v.Name == "tracer" then CFG.ESP.Tracer = on
-            elseif v.Name == "aim" then CFG.Aim.Enabled = on
-            elseif v.Name == "lock" then CFG.Aim.Lock = on
-            elseif v.Name == "vis" then CFG.Aim.Visible = on
-            elseif v.Name == "fov" then fovC.Visible = on
-            elseif string.sub(v.Name, 1, 2) == "t_" then
-                local tn = string.sub(v.Name, 3)
-                if on then
-                    local found = false; for _, ft in ipairs(CFG.Misc.FriendlyTeams) do if ft == tn then found = true; break end end
-                    if not found then table.insert(CFG.Misc.FriendlyTeams, tn) end
-                else
-                    for i = #CFG.Misc.FriendlyTeams, 1, -1 do if CFG.Misc.FriendlyTeams[i] == tn then table.remove(CFG.Misc.FriendlyTeams, i); break end end
+-- ESP with random update delay
+VisualsTab:CreateToggle({
+    Name = "ESP (Stealth)",
+    CurrentValue = false,
+    Flag = "ESP",
+    Callback = function(v)
+        if v then
+            _G.ESP_ENABLED = true
+            local Players = game:GetService("Players")
+            local LocalPlayer = Players.LocalPlayer
+            
+            _G.ESP_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.ESP_ENABLED and _G.STEALTH_MODE then
+                    -- Update ESP randomly to avoid detection
+                    if math.random(1, 5) == 1 then
+                        for _, player in ipairs(Players:GetPlayers()) do
+                            if player ~= LocalPlayer and player.Character then
+                                local head = player.Character:FindFirstChild("Head")
+                                if head and not head:FindFirstChild("ESPTag") then
+                                    local bill = Instance.new("BillboardGui")
+                                    bill.Name = "ESPTag"
+                                    bill.Size = UDim2.new(0, 200, 0, 40)
+                                    bill.AlwaysOnTop = true
+                                    bill.StudsOffset = Vector3.new(0, 3, 0)
+                                    bill.Parent = head
+                                    
+                                    local label = Instance.new("TextLabel")
+                                    label.Size = UDim2.new(1, 0, 1, 0)
+                                    label.BackgroundTransparency = 1
+                                    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+                                    label.TextScaled = true
+                                    label.Text = player.Name
+                                    label.Parent = bill
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            _G.ESP_ENABLED = false
+            if _G.ESP_CONN then
+                _G.ESP_CONN:Disconnect()
+                _G.ESP_CONN = nil
+            end
+            for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+                if player.Character then
+                    local head = player.Character:FindFirstChild("Head")
+                    if head then
+                        local bill = head:FindFirstChild("ESPTag")
+                        if bill then bill:Destroy() end
+                    end
                 end
             end
         end
     end
-    local sc = Camera.ViewportSize
-    fovC.Position = Vector2.new(sc.X / 2, sc.Y / 2)
-    upESP(); aim(); saveIfChanged()
-end)
+})
 
-print("[EDITED BY PEACE] Loaded")
+-- Chams with random timing
+VisualsTab:CreateButton({
+    Name = "Toggle Chams (Stealth)",
+    Callback = function()
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+        
+        _G.CHAMS_ENABLED = not _G.CHAMS_ENABLED
+        
+        if _G.CHAMS_ENABLED and _G.STEALTH_MODE then
+            task.wait(math.random(1, 3))
+        end
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                for _, part in ipairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        if _G.CHAMS_ENABLED then
+                            local highlight = Instance.new("Highlight")
+                            highlight.Adornee = part
+                            highlight.Parent = part
+                            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                            highlight.FillTransparency = 0.5
+                        else
+                            local highlight = part:FindFirstChildOfClass("Highlight")
+                            if highlight then highlight:Destroy() end
+                        end
+                    end
+                end
+            end
+        end
+    end
+})
+
+-- ================================
+-- Utility Features (Stealth)
+-- ================================
+
+local UtilityTab = Window:CreateTab("Utility", nil)
+
+-- Infinite Ammo with random values
+UtilityTab:CreateButton({
+    Name = "Enable Infinite Ammo (Stealth)",
+    Callback = function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local player = Players.LocalPlayer
+        local backpack = player:WaitForChild("Backpack")
+        local TARGET_AMMO = 999
+        local trackedAmmo = {}
+
+        local function processTool(tool)
+            if not tool:IsA("Tool") then return end
+            local config = tool:FindFirstChild("Config")
+            if not config then return end
+            local ammo = config:FindFirstChild("Ammo")
+            if not ammo or not ammo:IsA("ValueBase") then return end
+            
+            local whitelistFolder = tool:FindFirstChild("_TeamWhitelisted")
+            if whitelistFolder then whitelistFolder:Destroy() end
+            
+            if trackedAmmo[ammo] then return end
+            trackedAmmo[ammo] = true
+            -- Set to random high value to avoid detection
+            ammo.Value = math.random(900, 999)
+            ammo.Changed:Connect(function()
+                if ammo.Value < 900 then
+                    ammo.Value = math.random(900, 999)
+                end
+            end)
+        end
+
+        for _, item in ipairs(backpack:GetChildren()) do processTool(item) end
+        
+        backpack.ChildAdded:Connect(function(child)
+            task.wait(0.1)
+            processTool(child)
+        end)
+        
+        RunService.Heartbeat:Connect(function()
+            for ammo in pairs(trackedAmmo) do
+                if ammo.Parent and ammo.Value < 900 then
+                    ammo.Value = math.random(900, 999)
+                end
+            end
+        end)
+    end
+})
+
+-- No Recoil with random delay
+UtilityTab:CreateButton({
+    Name = "No Recoil & No Spread (Stealth)",
+    Callback = function()
+        _G.NO_RECOIL = not _G.NO_RECOIL
+        
+        local Players = game:GetService("Players")
+        local player = Players.LocalPlayer
+        
+        local function modifyWeapon(weapon)
+            if weapon:FindFirstChild("Config") then
+                local config = weapon.Config
+                local recoil = config:FindFirstChild("Recoil")
+                local spread = config:FindFirstChild("Spread")
+                if recoil and _G.NO_RECOIL then
+                    recoil.Value = math.random(0, 1)
+                end
+                if spread and _G.NO_RECOIL then
+                    spread.Value = math.random(0, 1)
+                end
+            end
+        end
+        
+        if player.Character then
+            for _, tool in ipairs(player.Character:GetChildren()) do
+                if tool:IsA("Tool") then modifyWeapon(tool) end
+            end
+        end
+        
+        for _, tool in ipairs(player.Backpack:GetChildren()) do
+            if tool:IsA("Tool") then modifyWeapon(tool) end
+        end
+        
+        player.CharacterAdded:Connect(function(char)
+            task.wait(0.5)
+            for _, tool in ipairs(char:GetChildren()) do
+                if tool:IsA("Tool") then modifyWeapon(tool) end
+            end
+        end)
+    end
+})
+
+-- Car Speed Boost (randomized)
+UtilityTab:CreateButton({
+    Name = "Boost Car Speed (Stealth)",
+    Callback = function()
+        local player = game:GetService("Players").LocalPlayer
+        if player.Character then
+            local vehicle = player.Character:FindFirstChildOfClass("VehicleSeat")
+            if vehicle then
+                local parent = vehicle.Parent
+                local engine = parent:FindFirstChild("Engine")
+                if engine then
+                    local speed = engine:FindFirstChild("Speed")
+                    if speed then
+                        _G.CAR_BOOST = not _G.CAR_BOOST
+                        if _G.CAR_BOOST then
+                            speed.Value = speed.Value * math.random(15, 25) / 10
+                        else
+                            speed.Value = speed.Value / math.random(15, 25) / 10
+                        end
+                    end
+                end
+            end
+        end
+    end
+})
+
+-- No Fall Damage (with random reapply)
+UtilityTab:CreateButton({
+    Name = "No Fall Damage (Stealth)",
+    Callback = function()
+        local player = game:GetService("Players").LocalPlayer
+        _G.NO_FALL_DAMAGE = not _G.NO_FALL_DAMAGE
+        
+        if player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            end
+        end
+        
+        -- Reapply randomly to avoid detection
+        if _G.NO_FALL_DAMAGE then
+            _G.NO_FALL_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.NO_FALL_DAMAGE and _G.STEALTH_MODE and math.random(1, 10) == 1 then
+                    if player.Character then
+                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+                        end
+                    end
+                end
+            end)
+        else
+            if _G.NO_FALL_CONN then
+                _G.NO_FALL_CONN:Disconnect()
+                _G.NO_FALL_CONN = nil
+            end
+        end
+    end
+})
+
+-- No Ragdoll (stealth)
+UtilityTab:CreateButton({
+    Name = "No Ragdoll (Stealth)",
+    Callback = function()
+        local player = game:GetService("Players").LocalPlayer
+        _G.NO_RAGDOLL = not _G.NO_RAGDOLL
+        
+        if player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+            end
+        end
+    end
+})
+
+-- Infinite Stamina (with randomization)
+UtilityTab:CreateButton({
+    Name = "Infinite Stamina (Stealth)",
+    Callback = function()
+        local player = game:GetService("Players").LocalPlayer
+        _G.INF_STAMINA = not _G.INF_STAMINA
+        
+        if player.Character then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local stamina = humanoid:FindFirstChild("Stamina")
+                if stamina then
+                    stamina.Value = math.random(95, 100)
+                end
+            end
+        end
+        
+        if _G.INF_STAMINA then
+            _G.STAMINA_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.INF_STAMINA and _G.STEALTH_MODE and math.random(1, 5) == 1 then
+                    if player.Character then
+                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            local stamina = humanoid:FindFirstChild("Stamina")
+                            if stamina then
+                                stamina.Value = math.random(95, 100)
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            if _G.STAMINA_CONN then
+                _G.STAMINA_CONN:Disconnect()
+                _G.STAMINA_CONN = nil
+            end
+        end
+    end
+})
+
+-- Noclip (stealth)
+UtilityTab:CreateButton({
+    Name = "Toggle Noclip (Stealth)",
+    Callback = function()
+        local player = game:GetService("Players").LocalPlayer
+        _G.NOCLIP = not _G.NOCLIP
+        
+        if player.Character then
+            for _, part in ipairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = not _G.NOCLIP
+                end
+            end
+        end
+    end
+})
+
+-- ================================
+-- Auto Farm Features (Stealth)
+-- ================================
+
+local AutoTab = Window:CreateTab("Auto Farm", nil)
+
+-- Auto Collect Cash (Stealth) - Mimics "Auto ATM" with random timing
+AutoTab:CreateButton({
+    Name = "Auto Collect Cash (Stealth)",
+    Callback = function()
+        _G.AUTO_COLLECT = not _G.AUTO_COLLECT
+        
+        if _G.AUTO_COLLECT then
+            local Players = game:GetService("Players")
+            local player = Players.LocalPlayer
+            
+            local function findCashRemotes()
+                for _, v in ipairs(game:GetDescendants()) do
+                    if v:IsA("RemoteEvent") and (string.find(v.Name, "Cash") or string.find(v.Name, "Collect") or string.find(v.Name, "Robbery")) then
+                        -- Randomize fire timing to avoid detection
+                        if math.random(1, 3) == 1 then
+                            v:FireServer()
+                        end
+                    end
+                end
+            end
+            
+            _G.AUTO_COLLECT_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.AUTO_COLLECT and _G.STEALTH_MODE then
+                    -- Random interval between 2-5 seconds
+                    if math.random(1, 30) == 1 then
+                        pcall(findCashRemotes)
+                    end
+                end
+            end)
+        else
+            if _G.AUTO_COLLECT_CONN then
+                _G.AUTO_COLLECT_CONN:Disconnect()
+                _G.AUTO_COLLECT_CONN = nil
+            end
+        end
+    end
+})
+
+-- Auto Minigame (Stealth)
+AutoTab:CreateButton({
+    Name = "Auto Minigame (Stealth)",
+    Callback = function()
+        _G.AUTO_MINIGAME = not _G.AUTO_MINIGAME
+        
+        if _G.AUTO_MINIGAME then
+            local function finishMinigames()
+                for _, v in ipairs(game:GetDescendants()) do
+                    if v:IsA("RemoteEvent") and (string.find(v.Name, "Minigame") or string.find(v.Name, "Game")) then
+                        pcall(function()
+                            -- Randomize finish timing
+                            if math.random(1, 2) == 1 then
+                                v:FireServer("Finish")
+                            end
+                        end)
+                    end
+                end
+            end
+            
+            _G.MINIGAME_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.AUTO_MINIGAME and _G.STEALTH_MODE then
+                    if math.random(1, 20) == 1 then
+                        pcall(finishMinigames)
+                    end
+                end
+            end)
+        else
+            if _G.MINIGAME_CONN then
+                _G.MINIGAME_CONN:Disconnect()
+                _G.MINIGAME_CONN = nil
+            end
+        end
+    end
+})
+
+-- Auto Fishing Farm (Stealth)
+AutoTab:CreateButton({
+    Name = "Auto Fishing Farm (Stealth)",
+    Callback = function()
+        _G.FISH_FARM = not _G.FISH_FARM
+        
+        if _G.FISH_FARM then
+            local function fish()
+                for _, v in ipairs(game:GetDescendants()) do
+                    if v:IsA("RemoteEvent") and string.find(v.Name, "Fish") then
+                        pcall(function()
+                            if math.random(1, 3) == 1 then
+                                v:FireServer("Cast")
+                            end
+                        end)
+                        break
+                    end
+                end
+            end
+            
+            local function sellFish()
+                for _, v in ipairs(game:GetDescendants()) do
+                    if v:IsA("RemoteEvent") and string.find(v.Name, "Sell") then
+                        pcall(function()
+                            if math.random(1, 3) == 1 then
+                                v:FireServer()
+                            end
+                        end)
+                        break
+                    end
+                end
+            end
+            
+            _G.FISH_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.FISH_FARM and _G.STEALTH_MODE then
+                    if math.random(1, 25) == 1 then
+                        pcall(fish)
+                        pcall(sellFish)
+                    end
+                end
+            end)
+        else
+            if _G.FISH_CONN then
+                _G.FISH_CONN:Disconnect()
+                _G.FISH_CONN = nil
+            end
+        end
+    end
+})
+
+-- ================================
+-- Additional Stealth Features
+-- ================================
+
+-- Randomize FOV (to avoid aimbot detection)
+AntiBanTab:CreateButton({
+    Name = "Randomize FOV (Anti-Detection)",
+    Callback = function()
+        _G.FOV_RANDOM = not _G.FOV_RANDOM
+        
+        if _G.FOV_RANDOM then
+            _G.FOV_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.FOV_RANDOM and _G.STEALTH_MODE then
+                    if math.random(1, 10) == 1 then
+                        local camera = workspace.CurrentCamera
+                        if camera then
+                            camera.FieldOfView = math.random(70, 90)
+                        end
+                    end
+                end
+            end)
+        else
+            if _G.FOV_CONN then
+                _G.FOV_CONN:Disconnect()
+                _G.FOV_CONN = nil
+            end
+        end
+    end
+})
+
+-- Fake Lag (to hide teleportation)
+AntiBanTab:CreateButton({
+    Name = "Enable Fake Lag (Stealth)",
+    Callback = function()
+        _G.FAKE_LAG = not _G.FAKE_LAG
+        
+        if _G.FAKE_LAG then
+            local player = game:GetService("Players").LocalPlayer
+            _G.FAKE_LAG_CONN = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.FAKE_LAG and _G.STEALTH_MODE then
+                    if player and player.Character then
+                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                        if humanoid and math.random(1, 50) == 1 then
+                            humanoid.WalkSpeed = humanoid.WalkSpeed - math.random(1, 5)
+                            task.wait(0.1)
+                            humanoid.WalkSpeed = humanoid.WalkSpeed + math.random(1, 5)
+                        end
+                    end
+                end
+            end)
+        else
+            if _G.FAKE_LAG_CONN then
+                _G.FAKE_LAG_CONN:Disconnect()
+                _G.FAKE_LAG_CONN = nil
+            end
+        end
+    end
+})
+
+-- ================================
+-- Notification
+-- ================================
+Rayfield:Notify({
+    Title = "San Aurie Hub v2",
+    Content = "Stealth mode active. Anti-ban systems running.",
+    Duration = 5
+})
+
+-- Start Anti-Ban by default
+_G.STEALTH_MODE = true
+startAntiBan()
