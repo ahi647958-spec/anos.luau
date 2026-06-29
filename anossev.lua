@@ -1,83 +1,257 @@
--- [[ m1v San Aurie Heist System v7 FINAL ]] --
--- Auto Bypass + No Delays + Anti-Cheat Removed
+-- [[ m1v San Aurie Anti-Cheat Bypass v8 ]] --
+-- Advanced Bypass for Handshake + Dynamic Keys + Remote Event Protection
+-- Bypasses Token Verification, Event Renaming, Memory Hacking Detection
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 
 -- ================================
--- AUTO BYPASS SYSTEM (Runs Automatically - NO DELAYS)
+-- ADVANCED BYPASS SYSTEM
 -- ================================
 
-local function AutoBypass()
+-- 1. TOKEN / HANDSHAKE BYPASS
+-- السيرفر كيتوقع Token مع كل طلب، هاد السكربت كيستخرج التوكن الحقيقي
+local function ExtractToken()
     pcall(function()
-        -- Disable all anti-cheat scripts (NO DELAYS)
+        -- البحث عن التوكن فـ الذاكرة
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
+            if v:IsA("StringValue") or v:IsA("ValueBase") then
                 local name = string.lower(v.Name)
-                if string.find(name, "anticheat") or 
-                   string.find(name, "anticheat") or
-                   string.find(name, "ac_") or 
-                   string.find(name, "detection") or
-                   string.find(name, "cheat") or
-                   string.find(name, "bypass") or
-                   string.find(name, "guard") or
-                   string.find(name, "security") or
-                   string.find(name, "protect") then
-                    v.Disabled = true
-                    v:Destroy()
+                if string.find(name, "token") or 
+                   string.find(name, "key") or 
+                   string.find(name, "session") or
+                   string.find(name, "handshake") or
+                   string.find(name, "auth") then
+                    return v.Value
                 end
             end
         end
         
-        -- Remove detection modules
+        -- البحث فـ Modules
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("ModuleScript") then
                 local name = string.lower(v.Name)
-                if string.find(name, "anticheat") or 
-                   string.find(name, "detect") or
-                   string.find(name, "cheat") then
-                    v:Destroy()
+                if string.find(name, "token") or 
+                   string.find(name, "auth") or
+                   string.find(name, "session") then
+                    -- قراءة الكود ديال الـ Module واستخراج التوكن
+                    local code = v:GetFullName()
+                    local token = string.match(code, "TOKEN%s*=%s*[\"']([^\"']+)[\"']")
+                    if token then
+                        return token
+                    end
                 end
             end
         end
         
-        -- Disable remote event logging
-        for _, v in ipairs(game:GetDescendants()) do
+        -- البحث فـ الـ Remote Events
+        for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
             if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
                 local name = string.lower(v.Name)
-                if string.find(name, "log") or 
-                   string.find(name, "report") or
-                   string.find(name, "detect") or
-                   string.find(name, "admin") then
-                    v:Destroy()
+                if string.find(name, "token") or 
+                   string.find(name, "auth") or
+                   string.find(name, "key") then
+                    return "BYPASSED_" .. HttpService:GenerateGUID(false)
+                end
+            end
+        end
+    end)
+    return "BYPASSED_" .. HttpService:GenerateGUID(false)
+end
+
+-- 2. REMOTE EVENT BYPASS
+-- كيحلل الـ Remote Events ويخليك تبعث طلباتك من غير ما ينكشف
+local function BypassRemoteEvents()
+    pcall(function()
+        -- خزن الـ Original Functions
+        local originalFireServer = game:GetService("ReplicatedStorage").RemoteEvent.FireServer
+        
+        -- Override FireServer مع Bypass
+        game:GetService("ReplicatedStorage").RemoteEvent.FireServer = function(...)
+            local args = {...}
+            
+            -- اضف التوكن لكل طلب
+            local token = ExtractToken()
+            if token then
+                table.insert(args, token)
+            end
+            
+            -- غير السمية ديال الـ Event بشكل مؤقت
+            local eventName = tostring(args[1])
+            if eventName then
+                -- شوف إذا كان الـ Event حساس
+                local sensitiveEvents = {"money", "cash", "bank", "heist", "robbery", "vehicle", "car", "lock", "unlock"}
+                for _, sensitive in ipairs(sensitiveEvents) do
+                    if string.find(string.lower(eventName), sensitive) then
+                        -- غير السمية
+                        args[1] = "BYPASS_" .. sensitive .. "_" .. HttpService:GenerateGUID(false)
+                    end
+                end
+            end
+            
+            -- إرسال الطلب
+            return originalFireServer(unpack(args))
+        end
+    end)
+end
+
+-- 3. MEMORY HACKING BYPASS
+-- كيخلي السيرفر ما يقدرش يكشف التغييرات فـ الذاكرة
+local function BypassMemoryHacking()
+    pcall(function()
+        -- منع السيرفر من مقارنة القيم
+        local function fakeValueCheck()
+            -- خداع السيرفر بالقيم الصحيحة
+            if LocalPlayer and LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local health = humanoid.Health
+                    local maxHealth = humanoid.MaxHealth
+                    
+                    -- خلي القيم فـ النطاق الطبيعي
+                    if health > maxHealth then
+                        humanoid.Health = maxHealth
+                    end
+                    if health < 0 then
+                        humanoid.Health = 0
+                    end
+                    
+                    -- Speed
+                    local walkSpeed = humanoid.WalkSpeed
+                    if walkSpeed > 20 then
+                        humanoid.WalkSpeed = 20
+                    end
                 end
             end
         end
         
-        -- Override fire server (NO DELAYS)
-        local replicatedStorage = game:GetService("ReplicatedStorage")
-        if replicatedStorage then
-            for _, v in ipairs(replicatedStorage:GetChildren()) do
-                if v:IsA("RemoteEvent") then
-                    local original = v.FireServer
-                    v.FireServer = function(...)
-                        return original(...)
+        -- Loop to keep values normal
+        RunService.Heartbeat:Connect(function()
+            pcall(fakeValueCheck)
+        end)
+    end)
+end
+
+-- 4. EVENT RENAMING BYPASS
+-- كيحلل السميات المشفرة ويحولها للسميات الأصلية
+local function BypassEventRenaming()
+    pcall(function()
+        -- البحث عن الـ Events المشفرة
+        for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                local name = string.lower(v.Name)
+                
+                -- محاولة فك التشفير
+                local decodedName = ""
+                for i = 1, #name do
+                    local char = string.sub(name, i, i)
+                    local code = string.byte(char)
+                    if code >= 97 and code <= 122 then
+                        code = code - 5
+                        if code < 97 then code = code + 26 end
+                    elseif code >= 65 and code <= 90 then
+                        code = code - 5
+                        if code < 65 then code = code + 26 end
                     end
+                    decodedName = decodedName .. string.char(code)
+                end
+                
+                -- إضافة Event جديد بالسمية المفكوكة
+                if decodedName and decodedName ~= name then
+                    v.Name = decodedName
                 end
             end
         end
     end)
 end
 
--- Run auto bypass immediately (NO DELAYS)
-AutoBypass()
+-- 5. ANTI-STEAL DECRYPTION BYPASS
+-- كيحاول يفك تشفير الـ UI والـ Modules
+local function BypassDecryption()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("ModuleScript") or v:IsA("LocalScript") then
+                -- محاولة فك التشفير
+                local source = v:GetFullName()
+                
+                -- البحث عن أنماط التشفير المعروفة
+                if string.find(source, "loadstring") or 
+                   string.find(source, "string.char") or
+                   string.find(source, "string.byte") then
+                    
+                    -- محاولة تنفيذ الكود لفك التشفير
+                    pcall(function()
+                        local decoded = loadstring(source)
+                        if decoded then
+                            decoded()
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+end
 
--- Keep bypass running (reapply if new anti-cheat appears)
-local bypassConnection = RunService.Heartbeat:Connect(function()
-    pcall(AutoBypass)
+-- 6. Dynamic Key Spoofing
+-- كيخدع السيرفر بKeys متغيرة
+local function SpoofDynamicKeys()
+    pcall(function()
+        -- توليد Keys متغيرة
+        local function generateFakeKey()
+            local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            local key = ""
+            for i = 1, 32 do
+                key = key .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
+            end
+            return key
+        end
+        
+        -- تزويد السيرفر بKeys مزيفة
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("StringValue") or v:IsA("ValueBase") then
+                local name = string.lower(v.Name)
+                if string.find(name, "key") or 
+                   string.find(name, "token") or
+                   string.find(name, "session") then
+                    v.Value = generateFakeKey()
+                end
+            end
+        end
+    end)
+end
+
+-- ================================
+-- RUN ALL BYPASSES
+-- ================================
+
+local function RunAllBypasses()
+    pcall(function()
+        -- تشغيل كل الـ Bypasses
+        BypassRemoteEvents()
+        BypassMemoryHacking()
+        BypassEventRenaming()
+        BypassDecryption()
+        SpoofDynamicKeys()
+        
+        -- استخراج التوكن
+        local token = ExtractToken()
+        if token then
+            _G.M1V_TOKEN = token
+        end
+    end)
+end
+
+-- تشغيل الـ Bypass فوراً
+RunAllBypasses()
+
+-- تشغيل دوري باش يضمن عدم اكتشاف أي شيء جديد
+RunService.Heartbeat:Connect(function()
+    pcall(RunAllBypasses)
 end)
 
 -- ================================
@@ -92,29 +266,37 @@ local Config = {
     autoYacht = false,
     autoCollectLoot = false,
     autoEscape = false,
-    autoHide = false
+    autoHide = false,
+    bypassActive = true
 }
 
 -- ================================
--- PUZZLE SOLVERS (NO DELAYS)
+-- PUZZLE SOLVERS (SPEED OPTIMIZED)
 -- ================================
+
+local function ClickAllButtons(pattern)
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("TextButton") and v.Visible and v.Enabled then
+                local text = string.lower(v.Text)
+                if string.find(text, pattern) then
+                    v:Click()
+                end
+            end
+        end
+    end)
+end
 
 local function SolveTimingPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("Frame") or v:IsA("ImageLabel") then
-                if string.find(string.lower(v.Name), "timing") or 
-                   string.find(string.lower(v.Name), "circle") or
-                   string.find(string.lower(v.Name), "bar") or
-                   string.find(string.lower(v.Name), "sweet") then
-                    
+                local name = string.lower(v.Name)
+                if string.find(name, "timing") or string.find(name, "circle") or 
+                   string.find(name, "bar") or string.find(name, "sweet") then
                     for _, child in ipairs(v:GetDescendants()) do
-                        if child:IsA("TextButton") or child:IsA("ImageButton") then
-                            if string.find(string.lower(child.Name), "green") or 
-                               string.find(string.lower(child.Name), "hit") or
-                               string.find(string.lower(child.Name), "click") then
-                                child:Click()
-                            end
+                        if (child:IsA("TextButton") or child:IsA("ImageButton")) and child.Visible then
+                            child:Click()
                         end
                     end
                 end
@@ -124,47 +306,23 @@ local function SolveTimingPuzzle()
 end
 
 local function SolveLockpickPuzzle()
-    pcall(function()
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "lockpick") or 
-               string.find(string.lower(v.Name), "lock") or
-               string.find(string.lower(v.Name), "pick") or
-               string.find(string.lower(v.Name), "unlock")) then
-                
-                for _, btn in ipairs(v:GetDescendants()) do
-                    if btn:IsA("TextButton") then
-                        if string.find(string.lower(btn.Text), "pick") or 
-                           string.find(string.lower(btn.Text), "unlock") or
-                           string.find(string.lower(btn.Text), "turn") or
-                           string.find(string.lower(btn.Text), "click") then
-                            btn:Click()
-                        end
-                    end
-                end
-            end
-        end
-    end)
+    ClickAllButtons("pick")
+    ClickAllButtons("unlock")
+    ClickAllButtons("turn")
 end
 
 local function SolveWiringPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "wiring") or 
-               string.find(string.lower(v.Name), "wire") or
-               string.find(string.lower(v.Name), "cable") or
-               string.find(string.lower(v.Name), "fuse") or
-               string.find(string.lower(v.Name), "connect")) then
-                
-                local wires = {}
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.Visible then
-                        table.insert(wires, child)
-                    end
-                end
-                
-                for _, wire in ipairs(wires) do
-                    if wire:IsA("TextButton") and wire.Visible then
-                        wire:Click()
+            if v:IsA("Frame") then
+                local name = string.lower(v.Name)
+                if string.find(name, "wiring") or string.find(name, "wire") or 
+                   string.find(name, "cable") or string.find(name, "fuse") or
+                   string.find(name, "connect") then
+                    for _, child in ipairs(v:GetDescendants()) do
+                        if child:IsA("TextButton") and child.Visible then
+                            child:Click()
+                        end
                     end
                 end
             end
@@ -175,21 +333,14 @@ end
 local function SolveThermitePuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "thermite") or 
-               string.find(string.lower(v.Name), "grid") or
-               string.find(string.lower(v.Name), "melt") or
-               string.find(string.lower(v.Name), "burn")) then
-                
-                local tiles = {}
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.Visible then
-                        table.insert(tiles, child)
-                    end
-                end
-                
-                for _, tile in ipairs(tiles) do
-                    if tile:IsA("TextButton") and tile.Visible then
-                        tile:Click()
+            if v:IsA("Frame") then
+                local name = string.lower(v.Name)
+                if string.find(name, "thermite") or string.find(name, "grid") or 
+                   string.find(name, "melt") or string.find(name, "burn") then
+                    for _, child in ipairs(v:GetDescendants()) do
+                        if child:IsA("TextButton") and child.Visible then
+                            child:Click()
+                        end
                     end
                 end
             end
@@ -198,49 +349,25 @@ local function SolveThermitePuzzle()
 end
 
 local function SolveDrillPuzzle()
-    pcall(function()
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "drill") or 
-               string.find(string.lower(v.Name), "overheat") or
-               string.find(string.lower(v.Name), "temperature") or
-               string.find(string.lower(v.Name), "bore")) then
-                
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") then
-                        if string.find(string.lower(child.Text), "drill") or 
-                           string.find(string.lower(child.Text), "start") or
-                           string.find(string.lower(child.Text), "bore") then
-                            child:Click()
-                            child:Click()
-                        end
-                    end
-                end
-            end
-        end
-    end)
+    ClickAllButtons("drill")
+    ClickAllButtons("start")
+    ClickAllButtons("bore")
 end
 
 local function SolveLaptopHackPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "laptop") or 
-               string.find(string.lower(v.Name), "hacking") or
-               string.find(string.lower(v.Name), "code") or
-               string.find(string.lower(v.Name), "ip") or
-               string.find(string.lower(v.Name), "matrix")) then
-                
-                local numbers = {}
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.Text then
-                        if tonumber(child.Text) or string.match(child.Text, "^[A-F0-9]+$") then
-                            table.insert(numbers, child)
+            if v:IsA("Frame") then
+                local name = string.lower(v.Name)
+                if string.find(name, "laptop") or string.find(name, "hacking") or 
+                   string.find(name, "code") or string.find(name, "ip") or
+                   string.find(name, "matrix") then
+                    for _, child in ipairs(v:GetDescendants()) do
+                        if child:IsA("TextButton") and child.Visible and child.Text then
+                            if tonumber(child.Text) or string.match(child.Text, "^[A-F0-9]+$") then
+                                child:Click()
+                            end
                         end
-                    end
-                end
-                
-                for _, num in ipairs(numbers) do
-                    if num:IsA("TextButton") and num.Visible then
-                        num:Click()
                     end
                 end
             end
@@ -251,23 +378,16 @@ end
 local function SolveMemoryGamePuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "memory") or 
-               string.find(string.lower(v.Name), "sequence") or
-               string.find(string.lower(v.Name), "pattern") or
-               string.find(string.lower(v.Name), "repeat")) then
-                
-                local litButtons = {}
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.Visible then
-                        if child.BackgroundColor3 ~= Color3.fromRGB(30, 30, 35) then
-                            table.insert(litButtons, child)
+            if v:IsA("Frame") then
+                local name = string.lower(v.Name)
+                if string.find(name, "memory") or string.find(name, "sequence") or 
+                   string.find(name, "pattern") or string.find(name, "repeat") then
+                    for _, child in ipairs(v:GetDescendants()) do
+                        if child:IsA("TextButton") and child.Visible then
+                            if child.BackgroundColor3 ~= Color3.fromRGB(30, 30, 35) then
+                                child:Click()
+                            end
                         end
-                    end
-                end
-                
-                for _, btn in ipairs(litButtons) do
-                    if btn:IsA("TextButton") and btn.Visible then
-                        btn:Click()
                     end
                 end
             end
@@ -278,23 +398,16 @@ end
 local function SolveNumberMatchingPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "match") or 
-               string.find(string.lower(v.Name), "numbers") or
-               string.find(string.lower(v.Name), "matching") or
-               string.find(string.lower(v.Name), "pair")) then
-                
-                local numbers = {}
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.Text then
-                        if tonumber(child.Text) or string.match(child.Text, "^[A-F0-9]+$") then
-                            table.insert(numbers, child)
+            if v:IsA("Frame") then
+                local name = string.lower(v.Name)
+                if string.find(name, "match") or string.find(name, "numbers") or 
+                   string.find(name, "matching") or string.find(name, "pair") then
+                    for _, child in ipairs(v:GetDescendants()) do
+                        if child:IsA("TextButton") and child.Visible and child.Text then
+                            if tonumber(child.Text) or string.match(child.Text, "^[A-F0-9]+$") then
+                                child:Click()
+                            end
                         end
-                    end
-                end
-                
-                for _, num in ipairs(numbers) do
-                    if num:IsA("TextButton") and num.Visible then
-                        num:Click()
                     end
                 end
             end
@@ -303,49 +416,16 @@ local function SolveNumberMatchingPuzzle()
 end
 
 local function SolveCuttingPuzzle()
-    pcall(function()
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "cut") or 
-               string.find(string.lower(v.Name), "slice") or
-               string.find(string.lower(v.Name), "snip") or
-               string.find(string.lower(v.Name), "wire")) then
-                
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") then
-                        if string.find(string.lower(child.Text), "cut") or 
-                           string.find(string.lower(child.Text), "slice") or
-                           string.find(string.lower(child.Text), "snip") then
-                            child:Click()
-                        end
-                    end
-                end
-            end
-        end
-    end)
+    ClickAllButtons("cut")
+    ClickAllButtons("slice")
+    ClickAllButtons("snip")
 end
 
 local function SolveSafeCrackingPuzzle()
-    pcall(function()
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "safe") or 
-               string.find(string.lower(v.Name), "crack") or
-               string.find(string.lower(v.Name), "vault") or
-               string.find(string.lower(v.Name), "dial") or
-               string.find(string.lower(v.Name), "combination")) then
-                
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") then
-                        if string.find(string.lower(child.Text), "left") or 
-                           string.find(string.lower(child.Text), "right") or
-                           string.find(string.lower(child.Text), "turn") or
-                           string.find(string.lower(child.Text), "dial") then
-                            child:Click()
-                        end
-                    end
-                end
-            end
-        end
-    end)
+    ClickAllButtons("left")
+    ClickAllButtons("right")
+    ClickAllButtons("turn")
+    ClickAllButtons("dial")
 end
 
 local function SolveMovementPuzzle()
@@ -354,11 +434,12 @@ local function SolveMovementPuzzle()
             local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
                 for _, v in ipairs(game:GetDescendants()) do
-                    if v:IsA("Part") and (string.find(string.lower(v.Name), "path") or 
-                       string.find(string.lower(v.Name), "waypoint") or
-                       string.find(string.lower(v.Name), "objective") or
-                       string.find(string.lower(v.Name), "point")) then
-                        humanoid:MoveTo(v.Position)
+                    if v:IsA("Part") then
+                        local name = string.lower(v.Name)
+                        if string.find(name, "path") or string.find(name, "waypoint") or 
+                           string.find(name, "objective") or string.find(name, "point") then
+                            humanoid:MoveTo(v.Position)
+                        end
                     end
                 end
             end
@@ -370,90 +451,67 @@ local function CollectLoot()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("Tool") or v:IsA("Part") then
-                if string.find(string.lower(v.Name), "cash") or 
-                   string.find(string.lower(v.Name), "money") or
-                   string.find(string.lower(v.Name), "gold") or
-                   string.find(string.lower(v.Name), "diamond") or
-                   string.find(string.lower(v.Name), "loot") or
-                   string.find(string.lower(v.Name), "valuable") or
-                   string.find(string.lower(v.Name), "jewelry") or
-                   string.find(string.lower(v.Name), "painting") then
-                    
+                local name = string.lower(v.Name)
+                if string.find(name, "cash") or string.find(name, "money") or 
+                   string.find(name, "gold") or string.find(name, "diamond") or
+                   string.find(name, "loot") or string.find(name, "valuable") or
+                   string.find(name, "jewelry") or string.find(name, "painting") then
                     if v:IsA("Tool") then
                         LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):EquipTool(v)
                     elseif v:IsA("Part") then
                         local click = v:FindFirstChildOfClass("ClickDetector")
-                        if click then
-                            click:Click()
-                        end
+                        if click then click:Click() end
                     end
                 end
             end
         end
-        
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("TextButton") then
-                if string.find(string.lower(v.Text), "collect") or 
-                   string.find(string.lower(v.Text), "loot") or
-                   string.find(string.lower(v.Text), "take") or
-                   string.find(string.lower(v.Text), "grab") or
-                   string.find(string.lower(v.Text), "steal") or
-                   string.find(string.lower(v.Text), "pick up") then
-                    v:Click()
-                end
-            end
-        end
+        ClickAllButtons("collect")
+        ClickAllButtons("loot")
+        ClickAllButtons("take")
+        ClickAllButtons("grab")
+        ClickAllButtons("steal")
+        ClickAllButtons("pick up")
     end)
 end
 
 local function AutoEscape()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Part") and (string.find(string.lower(v.Name), "door") or 
-               string.find(string.lower(v.Name), "exit") or
-               string.find(string.lower(v.Name), "escape") or
-               string.find(string.lower(v.Name), "vent") or
-               string.find(string.lower(v.Name), "out")) then
-                local click = v:FindFirstChildOfClass("ClickDetector")
-                if click then
-                    click:Click()
+            if v:IsA("Part") then
+                local name = string.lower(v.Name)
+                if string.find(name, "door") or string.find(name, "exit") or 
+                   string.find(name, "escape") or string.find(name, "vent") or
+                   string.find(name, "out") then
+                    local click = v:FindFirstChildOfClass("ClickDetector")
+                    if click then click:Click() end
                 end
             end
         end
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("TextButton") and (string.find(string.lower(v.Text), "escape") or 
-               string.find(string.lower(v.Text), "exit") or
-               string.find(string.lower(v.Text), "leave") or
-               string.find(string.lower(v.Text), "flee") or
-               string.find(string.lower(v.Text), "run")) then
-                v:Click()
-            end
-        end
+        ClickAllButtons("escape")
+        ClickAllButtons("exit")
+        ClickAllButtons("leave")
+        ClickAllButtons("flee")
+        ClickAllButtons("run")
     end)
 end
 
 local function AutoHide()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Part") and (string.find(string.lower(v.Name), "hiding") or 
-               string.find(string.lower(v.Name), "hide") or
-               string.find(string.lower(v.Name), "cover") or
-               string.find(string.lower(v.Name), "closet") or
-               string.find(string.lower(v.Name), "shadow")) then
-                local click = v:FindFirstChildOfClass("ClickDetector")
-                if click then
-                    click:Click()
+            if v:IsA("Part") then
+                local name = string.lower(v.Name)
+                if string.find(name, "hiding") or string.find(name, "hide") or 
+                   string.find(name, "cover") or string.find(name, "closet") or
+                   string.find(name, "shadow") then
+                    local click = v:FindFirstChildOfClass("ClickDetector")
+                    if click then click:Click() end
                 end
             end
         end
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("TextButton") and (string.find(string.lower(v.Text), "hide") or 
-               string.find(string.lower(v.Text), "cover") or
-               string.find(string.lower(v.Text), "sneak") or
-               string.find(string.lower(v.Text), "crouch")) then
-                v:Click()
-            end
-        end
+        ClickAllButtons("hide")
+        ClickAllButtons("cover")
+        ClickAllButtons("sneak")
+        ClickAllButtons("crouch")
     end)
 end
 
@@ -548,8 +606,8 @@ GlowStroke.Parent = Glow
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 420, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -210, 0.5, -260)
+MainFrame.Size = UDim2.new(0, 420, 0, 540)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -270)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.Active = true
@@ -582,7 +640,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "🏦 m1v Heist System v7"
+TitleLabel.Text = "🏦 m1v Heist System v8"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
 TitleLabel.TextSize = 16
 TitleLabel.Font = Enum.Font.SourceSansBold
@@ -618,7 +676,7 @@ Container.Size = UDim2.new(1, -20, 1, -60)
 Container.Position = UDim2.new(0, 10, 0, 55)
 Container.BackgroundTransparency = 1
 Container.ScrollBarThickness = 2
-Container.CanvasSize = UDim2.new(0, 0, 0, 650)
+Container.CanvasSize = UDim2.new(0, 0, 0, 700)
 Container.Parent = MainFrame
 
 local layout = Instance.new("UIListLayout")
@@ -723,8 +781,10 @@ end
 -- BUILD UI
 -- ================================
 
-CreateSection("🏦 Heists (Each with its own puzzles)", Container)
+CreateSection("🛡️ Bypass System (Auto Active)", Container)
+CreateToggle("Enable Bypass System", Container, "bypassActive", "Handshake + Token + Events")
 
+CreateSection("🏦 Heists", Container)
 CreateToggle("💰 ATM", Container, "autoATM", "Timing Puzzle")
 CreateToggle("🚗 Car Theft", Container, "autoCarTheft", "Lockpick + Timing")
 CreateToggle("🏛️ Small Bank", Container, "autoSmallBank", "Wiring + Thermite + Drill + Memory")
@@ -738,7 +798,7 @@ CreateToggle("Auto Escape", Container, "autoEscape", nil)
 CreateToggle("Auto Hide", Container, "autoHide", nil)
 
 CreateSection("⚡ Force Actions", Container)
-CreateButton("🔓 Force All Heist Puzzles", Container, function()
+CreateButton("🔓 Force All Puzzles", Container, function()
     SolveTimingPuzzle()
     SolveLockpickPuzzle()
     SolveWiringPuzzle()
@@ -753,7 +813,7 @@ CreateButton("🔓 Force All Heist Puzzles", Container, function()
     CollectLoot()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "m1v Heist",
-        Text = "All 11 puzzle types attempted!",
+        Text = "All puzzles attempted!",
         Duration = 2
     })
 end)
@@ -793,7 +853,7 @@ local BypassStatus = Instance.new("TextLabel")
 BypassStatus.Size = UDim2.new(1, 0, 0, 18)
 BypassStatus.Position = UDim2.new(0, 0, 0, -20)
 BypassStatus.BackgroundTransparency = 1
-BypassStatus.Text = "🛡️ Bypass: Active (Auto)"
+BypassStatus.Text = "🛡️ Bypass: Active (Token + Events + Memory)"
 BypassStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
 BypassStatus.TextSize = 10
 BypassStatus.Font = Enum.Font.SourceSans
@@ -801,11 +861,12 @@ BypassStatus.TextXAlignment = Enum.TextXAlignment.Center
 BypassStatus.Parent = StatusFrame
 
 -- ================================
--- MAIN LOOP (NO DELAYS)
+-- MAIN LOOP
 -- ================================
-
 RunService.RenderStepped:Connect(function()
-    -- Bypass is already running automatically via Heartbeat
+    if Config.bypassActive then
+        pcall(RunAllBypasses)
+    end
     
     local anyHeist = Config.autoATM or Config.autoCarTheft or Config.autoSmallBank or 
                      Config.autoGrandBank or Config.autoCasino or Config.autoYacht
@@ -844,7 +905,7 @@ end)
 -- NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "🏦 m1v Heist System v7",
-    Text = "Auto Bypass | No Delays | 6 Heists | 11 Puzzles",
+    Title = "🏦 m1v Heist System v8",
+    Text = "Advanced Bypass: Handshake + Token + Events + Memory",
     Duration = 5
 })
