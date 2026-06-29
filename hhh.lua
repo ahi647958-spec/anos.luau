@@ -1,872 +1,800 @@
--- [[ San Aurie All-in-One Script Hub with Anti-Ban System ]] --
--- Combined features with anti-detection layers
+-- [[ San Aurie Ultimate Hack Script v2 ]] --
+-- Added Anti-Ban / Bypass System
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-local Window = Rayfield:CreateWindow({
-   Name = "San Aurie Hub v2",
-   LoadingTitle = "Loading Hub",
-   LoadingSubtitle = "Stealth Mode Enabled",
-   ConfigurationSaving = {
-      Enabled = true,
-      FileName = "SanAurieStealth"
-   },
-   KeySystem = false
-})
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- ================================
--- Anti-Ban / Stealth System
+-- CONFIG
 -- ================================
-
-local AntiBan = {
-    enabled = true,
-    randomizers = {},
-    connection = nil
+local Config = {
+    -- Aimbot
+    aimbotEnabled = false,
+    FOVRadius = 150,
+    aimSmoothness = 5,
+    aimPart = "Head",
+    aimKey = Enum.KeyCode.E,
+    
+    -- ESP
+    espEnabled = false,
+    showDistance = false,
+    showHealth = false,
+    showHitbox = false,
+    espColor = Color3.fromRGB(0, 255, 150),
+    
+    -- Whitelist (Friendly)
+    whitelisted = {},
+    
+    -- Auto ATM (Robberies)
+    autoATM = false,
+    
+    -- Vehicle Hack
+    vehicleHack = false,
+    
+    -- Bank Hack
+    bankHack = false,
+    
+    -- Anti-Ban / Bypass
+    bypassEnabled = true,
+    stealthMode = true
 }
 
--- Randomize movement patterns to avoid detection
-local function randomizeMovement()
-    local player = game:GetService("Players").LocalPlayer
-    if player and player.Character then
-        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            local walkSpeed = humanoid.WalkSpeed
-            local jumpPower = humanoid.JumpPower
-            
-            -- Slightly randomize walk speed and jump power
-            humanoid.WalkSpeed = walkSpeed + math.random(-2, 2)
-            humanoid.JumpPower = jumpPower + math.random(-1, 1)
-            
-            -- Reset after short time to avoid suspicion
-            task.wait(math.random(5, 15))
-            humanoid.WalkSpeed = walkSpeed
-            humanoid.JumpPower = jumpPower
-        end
-    end
-end
+-- ================================
+-- ANTI-BAN / BYPASS SYSTEM
+-- ================================
 
--- Bypass the anti-cheat (if present)
-local function bypassAntiCheat()
-    -- Hide script from detection
-    local function hideScript()
+-- 1. Bypass the Anti-Cheat (if present)
+local function BypassAntiCheat()
+    pcall(function()
+        -- Disable anti-cheat scripts
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("LocalScript") and v.Name ~= "StarterLocalScript" then
-                pcall(function()
-                    v.Disabled = true
-                    task.wait(math.random(1, 3))
-                    v.Disabled = false
-                end)
+            if v:IsA("LocalScript") and (string.find(v.Name, "AntiCheat") or string.find(v.Name, "AC") or string.find(v.Name, "Detection")) then
+                v.Disabled = true
+                task.wait(0.1)
+                v.Disabled = false
             end
         end
-    end
-    
-    -- Randomize remote event firing
-    local originalFireServer = game:GetService("ReplicatedStorage").RemoteEvent.FireServer
-    game:GetService("ReplicatedStorage").RemoteEvent.FireServer = function(...)
-        if _G.STEALTH_MODE then
-            -- Add random delay to avoid detection
-            task.wait(math.random(1, 5) / 10)
-        end
-        return originalFireServer(...)
-    end
-end
-
--- Randomize player data to avoid detection
-local function randomizeData()
-    local player = game:GetService("Players").LocalPlayer
-    if player and player.Character then
-        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            -- Randomize health display slightly (not actual health)
-            local health = humanoid.Health
-            humanoid.Health = health + math.random(-1, 1)
-            task.wait(0.5)
-            humanoid.Health = health
-        end
-    end
-end
-
--- Start the anti-ban system
-local function startAntiBan()
-    if AntiBan.enabled then
-        AntiBan.connection = game:GetService("RunService").Heartbeat:Connect(function()
-            if _G.STEALTH_MODE then
-                -- Randomize movement every few seconds
-                if math.random(1, 20) == 5 then
-                    pcall(randomizeMovement)
-                end
-                
-                -- Randomize data occasionally
-                if math.random(1, 30) == 7 then
-                    pcall(randomizeData)
-                end
-            end
-        end)
         
-        -- Bypass anti-cheat
-        pcall(bypassAntiCheat)
-        
-        -- Hide the script from detection
-        pcall(hideScript)
-    end
-end
-
--- Anti-Ban Toggle
-local AntiBanTab = Window:CreateTab("Anti-Ban", nil)
-
-AntiBanTab:CreateToggle({
-    Name = "Stealth Mode (Anti-Ban)",
-    CurrentValue = true,
-    Flag = "StealthMode",
-    Callback = function(v)
-        _G.STEALTH_MODE = v
-        if v then
-            startAntiBan()
-            Rayfield:Notify({
-                Title = "Stealth Mode",
-                Content = "Anti-detection systems active",
-                Duration = 3
-            })
-        else
-            if AntiBan.connection then
-                AntiBan.connection:Disconnect()
-                AntiBan.connection = nil
+        -- Remove any detection modules
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("ModuleScript") and (string.find(v.Name, "AntiCheat") or string.find(v.Name, "AC")) then
+                v:Destroy()
             end
         end
-    end
-})
+    end)
+end
 
--- Randomize Script Names (to avoid detection)
-AntiBanTab:CreateButton({
-    Name = "Randomize Script Names",
-    Callback = function()
-        local randomName = function()
+-- 2. Fake Client Data (to avoid detection)
+local function FakeClientData()
+    pcall(function()
+        local player = LocalPlayer
+        
+        -- Fake ping
+        if player:FindFirstChild("Network") then
+            local network = player.Network
+            local ping = network:FindFirstChild("Ping")
+            if ping then
+                ping.Value = math.random(20, 80)
+            end
+        end
+        
+        -- Fake FPS
+        if game:GetService("Stats"):FindFirstChild("FPS") then
+            local fps = game:GetService("Stats").FPS
+            fps.Value = math.random(30, 120)
+        end
+    end)
+end
+
+-- 3. Randomize Movement (to avoid detection patterns)
+local function RandomizeMovement()
+    pcall(function()
+        if LocalPlayer and LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                -- Slightly randomize walk speed
+                local currentSpeed = humanoid.WalkSpeed
+                humanoid.WalkSpeed = currentSpeed + math.random(-2, 2)
+                task.wait(0.5)
+                humanoid.WalkSpeed = currentSpeed
+            end
+        end
+    end)
+end
+
+-- 4. Hide the script from detection
+local function HideScript()
+    pcall(function()
+        -- Rename all script objects
+        local function randomName()
             local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
             local str = ""
-            for i = 1, math.random(10, 20) do
+            for i = 1, math.random(12, 20) do
                 str = str .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
             end
             return str
         end
         
-        -- Rename all script objects
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
-                pcall(function()
-                    v.Name = randomName()
-                end)
+                if v.Name ~= "StarterLocalScript" then
+                    pcall(function()
+                        v.Name = randomName()
+                    end)
+                end
             end
         end
+    end)
+end
+
+-- 5. Bypass Remote Events (to avoid logging)
+local function BypassRemoteEvents()
+    pcall(function()
+        local originalFireServer = game:GetService("ReplicatedStorage").RemoteEvent.FireServer
         
-        Rayfield:Notify({
-            Title = "Scripts Renamed",
-            Content = "All script names randomized",
-            Duration = 2
-        })
-    end
-})
-
--- Clear Console (to hide errors)
-AntiBanTab:CreateButton({
-    Name = "Clear Console",
-    Callback = function()
-        game:GetService("CoreGui"):FindFirstChild("RobloxGui"):FindFirstChild("Console"):Clear()
-        Rayfield:Notify({
-            Title = "Console Cleared",
-            Content = "No trace left",
-            Duration = 2
-        })
-    end
-})
-
--- ================================
--- Combat Features
--- ================================
-
-local MainTab = Window:CreateTab("Combat", nil)
-
--- Big Head Hitbox with random delay
-MainTab:CreateButton({
-    Name = "Toggle Big Head Hitbox (Stealth)",
-    Callback = function()
-        local Players = game:GetService("Players")
-        local RunService = game:GetService("RunService")
-        local LocalPlayer = Players.LocalPlayer
-
-        _G.BIG_HEAD_STATE = _G.BIG_HEAD_STATE or {
-            enabled = false,
-            data = {},
-            paused = {}
-        }
-        local state = _G.BIG_HEAD_STATE
-        local HEAD_SCALE = Vector3.new(12, 12, 12)
-        local HEAD_TRANSPARENCY = 0.9
-
-        local function getHead(char) return char and char:FindFirstChild("Head") end
-        local function getHumanoid(char) return char and char:FindFirstChildOfClass("Humanoid") end
-
-        local function getAllDecals(head)
-            local decals = {}
-            for _, obj in ipairs(head:GetChildren()) do
-                if obj:IsA("Decal") then table.insert(decals, obj) end
+        -- Override FireServer to add random delays
+        game:GetService("ReplicatedStorage").RemoteEvent.FireServer = function(...)
+            if Config.stealthMode then
+                task.wait(math.random(1, 5) / 100)
             end
-            return decals
+            return originalFireServer(...)
         end
+    end)
+end
 
-        local function revertBigHead(player)
-            local saved = state.data[player]
-            if not saved then return end
-            local head = getHead(player.Character)
-            if head then
-                head.Size = saved.size
-                head.Transparency = saved.transparency
-                head.CanCollide = true
-                head.Massless = false
-                for _, decal in ipairs(saved.decals) do
-                    if decal then decal.Parent = head end
+-- 6. Fake Lag (to hide teleportation)
+local function FakeLag()
+    pcall(function()
+        if Config.stealthMode and math.random(1, 20) == 1 then
+            if LocalPlayer and LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = humanoid.WalkSpeed - math.random(1, 3)
+                    task.wait(0.1)
+                    humanoid.WalkSpeed = humanoid.WalkSpeed + math.random(1, 3)
                 end
             end
-            state.data[player] = nil
         end
+    end)
+end
 
-        local function applyBigHead(player)
-            if player == LocalPlayer then return end
-            if not player.Character then return end
-            local humanoid = getHumanoid(player.Character)
-            if not humanoid or humanoid.Health <= 0 then state.paused[player] = true; return end
-            local head = getHead(player.Character)
-            if not head then return end
-            if not state.data[player] then
-                state.data[player] = {
-                    size = head.Size,
-                    transparency = head.Transparency,
-                    decals = getAllDecals(head)
-                }
+-- 7. Randomize FOV (to avoid aimbot detection)
+local function RandomizeFOV()
+    pcall(function()
+        if Config.stealthMode and math.random(1, 15) == 1 then
+            if Camera then
+                Camera.FieldOfView = math.random(70, 90)
             end
-            head.Size = HEAD_SCALE
-            head.Transparency = HEAD_TRANSPARENCY
-            head.CanCollide = false
-            head.Massless = true
-            for _, decal in ipairs(getAllDecals(head)) do decal.Parent = nil end
         end
+    end)
+end
 
-        if state.enabled then
-            for player in pairs(state.data) do revertBigHead(player) end
-            if state.enforceConn then state.enforceConn:Disconnect(); state.enforceConn = nil end
-            state.enabled = false
-            return
-        end
-
-        state.enabled = true
-        for _, player in ipairs(Players:GetPlayers()) do applyBigHead(player) end
-
-        state.enforceConn = RunService.Heartbeat:Connect(function()
-            if not state.enabled then return end
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local humanoid = getHumanoid(player.Character)
-                    local head = getHead(player.Character)
-                    if humanoid and humanoid.Health <= 0 then
-                        if state.data[player] then revertBigHead(player) end
-                        state.paused[player] = true
-                    elseif humanoid and humanoid.Health > 0 then
-                        if state.paused[player] then
-                            state.paused[player] = nil
-                            applyBigHead(player)
-                        elseif state.data[player] and head then
-                            if head.Size ~= HEAD_SCALE or head.Transparency ~= HEAD_TRANSPARENCY then
-                                applyBigHead(player)
-                            end
-                        else
-                            applyBigHead(player)
-                        end
-                    end
-                end
+-- Start Bypass System
+local function StartBypass()
+    if Config.bypassEnabled then
+        -- Run bypass functions
+        pcall(BypassAntiCheat)
+        pcall(BypassRemoteEvents)
+        pcall(HideScript)
+        
+        -- Start continuous bypass loop
+        _G.BYPASS_CONN = RunService.Heartbeat:Connect(function()
+            if Config.bypassEnabled then
+                pcall(FakeClientData)
+                pcall(RandomizeMovement)
+                pcall(FakeLag)
+                pcall(RandomizeFOV)
             end
         end)
     end
-})
+end
 
--- Silent Aim with random delay
-MainTab:CreateToggle({
-    Name = "Silent Aim (Stealth)",
-    CurrentValue = false,
-    Flag = "SilentAim",
-    Callback = function(v)
-        if v then
-            _G.SILENT_AIM_ENABLED = true
-            local Players = game:GetService("Players")
-            local RunService = game:GetService("RunService")
-            local LocalPlayer = Players.LocalPlayer
-            local Camera = workspace.CurrentCamera
+-- ================================
+-- GUI
+-- ================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "m1v"
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 450, 0, 550)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Title.Text = "San Aurie Ultimate v2 (Bypass)"
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
+Title.TextSize = 16
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
+
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(0, 100, 1, -40)
+TabBar.Position = UDim2.new(0, 0, 0, 40)
+TabBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+TabBar.Parent = MainFrame
+
+local TabCorner = Instance.new("UICorner")
+TabCorner.CornerRadius = UDim.new(0, 5)
+TabCorner.Parent = TabBar
+
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -110, 1, -50)
+Container.Position = UDim2.new(0, 105, 0, 45)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+
+local function CreateTab(name, order)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 35)
+    btn.Position = UDim2.new(0, 5, 0, (order - 1) * 40 + 5)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Parent = TabBar
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = btn
+    
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, 0, 1, 0)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 2
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 450)
+    scroll.Visible = (order == 1)
+    scroll.Parent = Container
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 5)
+    layout.Parent = scroll
+    
+    btn.MouseButton1Click:Connect(function()
+        for _, child in ipairs(Container:GetChildren()) do
+            if child:IsA("ScrollingFrame") then
+                child.Visible = false
+            end
+        end
+        scroll.Visible = true
+    end)
+    
+    return scroll
+end
+
+local function CreateToggle(text, parent, configKey)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -5, 0, 35)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    frame.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 200, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextSize = 12
+    label.Font = Enum.Font.SourceSans
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.Parent = frame
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 50, 0, 22)
+    btn.Position = UDim2.new(1, -60, 0.5, -11)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 10
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    
+    local state = Config[configKey]
+    btn.BackgroundColor3 = state and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(150, 50, 50)
+    btn.Text = state and "ON" or "OFF"
+    btn.Parent = frame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        Config[configKey] = not Config[configKey]
+        local newState = Config[configKey]
+        btn.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(150, 50, 50)
+        btn.Text = newState and "ON" or "OFF"
+        
+        -- Start bypass when enabled
+        if configKey == "bypassEnabled" and newState then
+            StartBypass()
+        end
+    end)
+end
+
+local function CreateButton(text, parent, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -5, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.SourceSans
+    btn.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Create Tabs
+local AimbotTab = CreateTab("Aimbot", 1)
+local ESPTab = CreateTab("ESP", 2)
+local WhitelistTab = CreateTab("Friendly", 3)
+local HackTab = CreateTab("Hacks", 4)
+local BypassTab = CreateTab("Bypass", 5)
+
+-- ================================
+-- AIMBOT TAB
+-- ================================
+CreateToggle("Enable Aimbot", AimbotTab, "aimbotEnabled")
+CreateToggle("Show FOV Circle", AimbotTab, "aimbotEnabled")
+
+-- FOV Slider
+local fovFrame = Instance.new("Frame")
+fovFrame.Size = UDim2.new(1, -5, 0, 35)
+fovFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+fovFrame.Parent = AimbotTab
+
+local fovCorner = Instance.new("UICorner")
+fovCorner.CornerRadius = UDim.new(0, 5)
+fovCorner.Parent = fovFrame
+
+local fovLabel = Instance.new("TextLabel")
+fovLabel.Size = UDim2.new(0, 200, 1, 0)
+fovLabel.Position = UDim2.new(0, 10, 0, 0)
+fovLabel.Text = "FOV Radius: " .. Config.FOVRadius
+fovLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+fovLabel.TextSize = 12
+fovLabel.Font = Enum.Font.SourceSans
+fovLabel.TextXAlignment = Enum.TextXAlignment.Left
+fovLabel.BackgroundTransparency = 1
+fovLabel.Parent = fovFrame
+
+local fovBtn = Instance.new("TextButton")
+fovBtn.Size = UDim2.new(0, 50, 0, 22)
+fovBtn.Position = UDim2.new(1, -60, 0.5, -11)
+fovBtn.Font = Enum.Font.SourceSansBold
+fovBtn.TextSize = 10
+fovBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+fovBtn.Text = "100"
+fovBtn.Parent = fovFrame
+
+local fovCornerBtn = Instance.new("UICorner")
+fovCornerBtn.CornerRadius = UDim.new(0, 4)
+fovCornerBtn.Parent = fovBtn
+
+local fovValues = {50, 75, 100, 125, 150, 175, 200, 250, 300}
+local fovIndex = 3
+
+fovBtn.MouseButton1Click:Connect(function()
+    fovIndex = fovIndex % #fovValues + 1
+    Config.FOVRadius = fovValues[fovIndex]
+    fovBtn.Text = tostring(Config.FOVRadius)
+    fovLabel.Text = "FOV Radius: " .. Config.FOVRadius
+end)
+
+-- Aim Part Selector
+local partFrame = Instance.new("Frame")
+partFrame.Size = UDim2.new(1, -5, 0, 35)
+partFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+partFrame.Parent = AimbotTab
+
+local partCorner = Instance.new("UICorner")
+partCorner.CornerRadius = UDim.new(0, 5)
+partCorner.Parent = partFrame
+
+local partLabel = Instance.new("TextLabel")
+partLabel.Size = UDim2.new(0, 200, 1, 0)
+partLabel.Position = UDim2.new(0, 10, 0, 0)
+partLabel.Text = "Aim Part: Head"
+partLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+partLabel.TextSize = 12
+partLabel.Font = Enum.Font.SourceSans
+partLabel.TextXAlignment = Enum.TextXAlignment.Left
+partLabel.BackgroundTransparency = 1
+partLabel.Parent = partFrame
+
+local partBtn = Instance.new("TextButton")
+partBtn.Size = UDim2.new(0, 60, 0, 22)
+partBtn.Position = UDim2.new(1, -70, 0.5, -11)
+partBtn.Font = Enum.Font.SourceSansBold
+partBtn.TextSize = 10
+partBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+partBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+partBtn.Text = "Head"
+partBtn.Parent = partFrame
+
+local partCornerBtn = Instance.new("UICorner")
+partCornerBtn.CornerRadius = UDim.new(0, 4)
+partCornerBtn.Parent = partBtn
+
+local parts = {"Head", "HumanoidRootPart", "Torso"}
+local partIndex = 1
+
+partBtn.MouseButton1Click:Connect(function()
+    partIndex = partIndex % #parts + 1
+    Config.aimPart = parts[partIndex]
+    partBtn.Text = Config.aimPart
+    partLabel.Text = "Aim Part: " .. Config.aimPart
+end)
+
+-- ================================
+-- ESP TAB
+-- ================================
+CreateToggle("Enable ESP", ESPTab, "espEnabled")
+CreateToggle("Show Distance", ESPTab, "showDistance")
+CreateToggle("Show Health", ESPTab, "showHealth")
+CreateToggle("Show Hitbox", ESPTab, "showHitbox")
+
+-- ================================
+-- WHITELIST TAB
+-- ================================
+local function UpdateWhitelist()
+    for _, child in ipairs(WhitelistTab:GetChildren()) do
+        if child:IsA("TextButton") and child.Name ~= "UIListLayout" and child.Name ~= "UICorner" then
+            child:Destroy()
+        end
+    end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Name = player.Name
+            btn.Size = UDim2.new(1, -5, 0, 30)
+            btn.BackgroundColor3 = Config.whitelisted[player.Name] and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 40, 45)
+            btn.Text = player.Name .. (Config.whitelisted[player.Name] and " ✅" or "")
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.TextSize = 12
+            btn.Font = Enum.Font.SourceSans
+            btn.Parent = WhitelistTab
             
-            _G.SILENT_AIM_CONN = RunService.Heartbeat:Connect(function()
-                if _G.SILENT_AIM_ENABLED and _G.STEALTH_MODE then
-                    -- Add random delay to avoid detection
-                    if math.random(1, 3) == 1 then
-                        local closestPlayer = nil
-                        local closestDistance = math.huge
-                        for _, player in ipairs(Players:GetPlayers()) do
-                            if player ~= LocalPlayer and player.Character then
-                                local head = player.Character:FindFirstChild("Head")
-                                if head then
-                                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                                    if onScreen then
-                                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - game:GetService("UserInputService"):GetMouseLocation()).Magnitude
-                                        if distance < closestDistance then
-                                            closestDistance = distance
-                                            closestPlayer = player
-                                        end
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 5)
+            corner.Parent = btn
+            
+            btn.MouseButton1Click:Connect(function()
+                Config.whitelisted[player.Name] = not Config.whitelisted[player.Name]
+                btn.Text = player.Name .. (Config.whitelisted[player.Name] and " ✅" or "")
+                btn.BackgroundColor3 = Config.whitelisted[player.Name] and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 40, 45)
+            end)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(UpdateWhitelist)
+Players.PlayerRemoving:Connect(UpdateWhitelist)
+UpdateWhitelist()
+
+-- ================================
+-- HACK TAB
+-- ================================
+CreateToggle("Auto ATM (Collect Cash)", HackTab, "autoATM")
+CreateButton("Hack Vehicles (Unlock All)", HackTab, function()
+    Config.vehicleHack = not Config.vehicleHack
+    if Config.vehicleHack then
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (string.find(v.Name, "Vehicle") or string.find(v.Name, "Car") or string.find(v.Name, "Lock")) then
+                pcall(function() v:FireServer("Unlock") end)
+            end
+        end
+    end
+end)
+
+CreateButton("Hack Banks (Auto Cash)", HackTab, function()
+    Config.bankHack = not Config.bankHack
+    if Config.bankHack then
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "ATM") or string.find(v.Name, "Cash")) then
+                pcall(function() v:FireServer(true) end)
+            end
+        end
+    end
+end)
+
+-- ================================
+-- BYPASS TAB
+-- ================================
+CreateToggle("Enable Bypass System", BypassTab, "bypassEnabled")
+CreateToggle("Stealth Mode (Random Delays)", BypassTab, "stealthMode")
+
+CreateButton("Run Anti-Cheat Bypass", BypassTab, function()
+    pcall(BypassAntiCheat)
+    pcall(BypassRemoteEvents)
+    pcall(HideScript)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Bypass",
+        Text = "Anti-cheat bypassed successfully!",
+        Duration = 2
+    })
+end)
+
+CreateButton("Randomize Script Names", BypassTab, function()
+    pcall(HideScript)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Bypass",
+        Text = "Script names randomized!",
+        Duration = 2
+    })
+end)
+
+CreateButton("Clear Console (Remove Traces)", BypassTab, function()
+    pcall(function()
+        local console = game:GetService("CoreGui"):FindFirstChild("RobloxGui"):FindFirstChild("Console")
+        if console then
+            console:Clear()
+        end
+    end)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Bypass",
+        Text = "Console cleared!",
+        Duration = 2
+    })
+end)
+
+-- ================================
+-- FOV CIRCLE
+-- ================================
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Size = UDim2.new(0, Config.FOVRadius * 2, 0, Config.FOVRadius * 2)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = false
+FOVCircle.Parent = ScreenGui
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Thickness = 1.5
+FOVStroke.Color = Color3.fromRGB(0, 255, 150)
+FOVStroke.Parent = FOVCircle
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1, 0)
+FOVCorner.Parent = FOVCircle
+
+-- ================================
+-- AIMBOT FUNCTION
+-- ================================
+local function GetClosestPlayer()
+    local closest = nil
+    local shortest = Config.FOVRadius
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and not Config.whitelisted[player.Name] and player.Character then
+            local part = player.Character:FindFirstChild(Config.aimPart)
+            if part then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if dist < shortest then
+                        shortest = dist
+                        closest = player
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- ================================
+-- ESP SYSTEM
+-- ================================
+local ESPObjects = {}
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    if ESPObjects[player] then return end
+    
+    local char = player.Character
+    if not char then return end
+    
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+    
+    local bill = Instance.new("BillboardGui")
+    bill.Name = "ESP_Label"
+    bill.Size = UDim2.new(0, 200, 0, 80)
+    bill.AlwaysOnTop = true
+    bill.StudsOffset = Vector3.new(0, 3, 0)
+    bill.Enabled = false
+    bill.Parent = head
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Config.espColor
+    label.TextSize = 12
+    label.Font = Enum.Font.SourceSansBold
+    label.TextWrapped = true
+    label.Parent = bill
+    
+    ESPObjects[player] = bill
+end
+
+-- ================================
+-- MAIN LOOP
+-- ================================
+RunService.RenderStepped:Connect(function()
+    -- FOV Circle
+    local mousePos = UserInputService:GetMouseLocation()
+    FOVCircle.Position = UDim2.new(0, mousePos.X - Config.FOVRadius, 0, mousePos.Y - Config.FOVRadius)
+    FOVCircle.Size = UDim2.new(0, Config.FOVRadius * 2, 0, Config.FOVRadius * 2)
+    FOVCircle.Visible = Config.aimbotEnabled
+    
+    -- ESP Update
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char then
+                local head = char:FindFirstChild("Head")
+                if head then
+                    local bill = head:FindFirstChild("ESP_Label")
+                    if not bill then
+                        CreateESP(player)
+                        bill = head:FindFirstChild("ESP_Label")
+                    end
+                    
+                    if bill and Config.espEnabled then
+                        bill.Enabled = true
+                        local label = bill:FindFirstChildOfClass("TextLabel")
+                        if label then
+                            local text = ""
+                            
+                            -- Name
+                            text = text .. player.Name
+                            
+                            -- Distance
+                            if Config.showDistance and LocalPlayer.Character then
+                                local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                if root and player.Character then
+                                    local pRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                                    if pRoot then
+                                        local dist = math.floor((root.Position - pRoot.Position).Magnitude)
+                                        text = text .. "\n" .. tostring(dist) .. "m"
                                     end
                                 end
                             end
-                        end
-                        if closestPlayer and closestPlayer.Character then
-                            local head = closestPlayer.Character:FindFirstChild("Head")
-                            if head then
-                                Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
-                            end
-                        end
-                    end
-                end
-            end)
-        else
-            _G.SILENT_AIM_ENABLED = false
-            if _G.SILENT_AIM_CONN then
-                _G.SILENT_AIM_CONN:Disconnect()
-                _G.SILENT_AIM_CONN = nil
-            end
-        end
-    end
-})
-
--- ================================
--- Visuals Features (Stealth)
--- ================================
-
-local VisualsTab = Window:CreateTab("Visuals", nil)
-
--- ESP with random update delay
-VisualsTab:CreateToggle({
-    Name = "ESP (Stealth)",
-    CurrentValue = false,
-    Flag = "ESP",
-    Callback = function(v)
-        if v then
-            _G.ESP_ENABLED = true
-            local Players = game:GetService("Players")
-            local LocalPlayer = Players.LocalPlayer
-            
-            _G.ESP_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.ESP_ENABLED and _G.STEALTH_MODE then
-                    -- Update ESP randomly to avoid detection
-                    if math.random(1, 5) == 1 then
-                        for _, player in ipairs(Players:GetPlayers()) do
-                            if player ~= LocalPlayer and player.Character then
-                                local head = player.Character:FindFirstChild("Head")
-                                if head and not head:FindFirstChild("ESPTag") then
-                                    local bill = Instance.new("BillboardGui")
-                                    bill.Name = "ESPTag"
-                                    bill.Size = UDim2.new(0, 200, 0, 40)
-                                    bill.AlwaysOnTop = true
-                                    bill.StudsOffset = Vector3.new(0, 3, 0)
-                                    bill.Parent = head
-                                    
-                                    local label = Instance.new("TextLabel")
-                                    label.Size = UDim2.new(1, 0, 1, 0)
-                                    label.BackgroundTransparency = 1
-                                    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-                                    label.TextScaled = true
-                                    label.Text = player.Name
-                                    label.Parent = bill
+                            
+                            -- Health
+                            if Config.showHealth then
+                                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                                if humanoid then
+                                    text = text .. "\nHP: " .. math.floor(humanoid.Health)
                                 end
                             end
+                            
+                            label.Text = text
                         end
+                    elseif bill then
+                        bill.Enabled = false
                     end
-                end
-            end)
-        else
-            _G.ESP_ENABLED = false
-            if _G.ESP_CONN then
-                _G.ESP_CONN:Disconnect()
-                _G.ESP_CONN = nil
-            end
-            for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-                if player.Character then
-                    local head = player.Character:FindFirstChild("Head")
-                    if head then
-                        local bill = head:FindFirstChild("ESPTag")
-                        if bill then bill:Destroy() end
-                    end
-                end
-            end
-        end
-    end
-})
-
--- Chams with random timing
-VisualsTab:CreateButton({
-    Name = "Toggle Chams (Stealth)",
-    Callback = function()
-        local Players = game:GetService("Players")
-        local LocalPlayer = Players.LocalPlayer
-        
-        _G.CHAMS_ENABLED = not _G.CHAMS_ENABLED
-        
-        if _G.CHAMS_ENABLED and _G.STEALTH_MODE then
-            task.wait(math.random(1, 3))
-        end
-        
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                for _, part in ipairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        if _G.CHAMS_ENABLED then
-                            local highlight = Instance.new("Highlight")
-                            highlight.Adornee = part
-                            highlight.Parent = part
-                            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                            highlight.FillTransparency = 0.5
-                        else
-                            local highlight = part:FindFirstChildOfClass("Highlight")
-                            if highlight then highlight:Destroy() end
+                    
+                    -- Hitbox (highlight)
+                    if Config.showHitbox then
+                        for _, part in ipairs(char:GetChildren()) do
+                            if part:IsA("BasePart") and not part:FindFirstChild("HitboxHighlight") then
+                                local hl = Instance.new("Highlight")
+                                hl.Name = "HitboxHighlight"
+                                hl.Adornee = part
+                                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                                hl.FillTransparency = 0.3
+                                hl.Parent = part
+                            end
+                        end
+                    else
+                        for _, part in ipairs(char:GetChildren()) do
+                            if part:IsA("BasePart") then
+                                local hl = part:FindFirstChild("HitboxHighlight")
+                                if hl then hl:Destroy() end
+                            end
                         end
                     end
                 end
             end
         end
     end
-})
-
--- ================================
--- Utility Features (Stealth)
--- ================================
-
-local UtilityTab = Window:CreateTab("Utility", nil)
-
--- Infinite Ammo with random values
-UtilityTab:CreateButton({
-    Name = "Enable Infinite Ammo (Stealth)",
-    Callback = function()
-        local Players = game:GetService("Players")
-        local RunService = game:GetService("RunService")
-        local player = Players.LocalPlayer
-        local backpack = player:WaitForChild("Backpack")
-        local TARGET_AMMO = 999
-        local trackedAmmo = {}
-
-        local function processTool(tool)
-            if not tool:IsA("Tool") then return end
-            local config = tool:FindFirstChild("Config")
-            if not config then return end
-            local ammo = config:FindFirstChild("Ammo")
-            if not ammo or not ammo:IsA("ValueBase") then return end
-            
-            local whitelistFolder = tool:FindFirstChild("_TeamWhitelisted")
-            if whitelistFolder then whitelistFolder:Destroy() end
-            
-            if trackedAmmo[ammo] then return end
-            trackedAmmo[ammo] = true
-            -- Set to random high value to avoid detection
-            ammo.Value = math.random(900, 999)
-            ammo.Changed:Connect(function()
-                if ammo.Value < 900 then
-                    ammo.Value = math.random(900, 999)
-                end
-            end)
+    
+    -- Aimbot
+    if Config.aimbotEnabled and UserInputService:IsKeyDown(Config.aimKey) then
+        local target = GetClosestPlayer()
+        if target and target.Character then
+            local part = target.Character:FindFirstChild(Config.aimPart)
+            if part then
+                local pos = part.Position
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, pos), 1 / Config.aimSmoothness)
+            end
         end
-
-        for _, item in ipairs(backpack:GetChildren()) do processTool(item) end
-        
-        backpack.ChildAdded:Connect(function(child)
-            task.wait(0.1)
-            processTool(child)
-        end)
-        
-        RunService.Heartbeat:Connect(function()
-            for ammo in pairs(trackedAmmo) do
-                if ammo.Parent and ammo.Value < 900 then
-                    ammo.Value = math.random(900, 999)
+    end
+    
+    -- Auto ATM
+    if Config.autoATM then
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("RemoteEvent") then
+                    if string.find(v.Name, "Collect") or string.find(v.Name, "Cash") or string.find(v.Name, "Robbery") then
+                        v:FireServer()
+                    end
                 end
             end
         end)
     end
-})
-
--- No Recoil with random delay
-UtilityTab:CreateButton({
-    Name = "No Recoil & No Spread (Stealth)",
-    Callback = function()
-        _G.NO_RECOIL = not _G.NO_RECOIL
-        
-        local Players = game:GetService("Players")
-        local player = Players.LocalPlayer
-        
-        local function modifyWeapon(weapon)
-            if weapon:FindFirstChild("Config") then
-                local config = weapon.Config
-                local recoil = config:FindFirstChild("Recoil")
-                local spread = config:FindFirstChild("Spread")
-                if recoil and _G.NO_RECOIL then
-                    recoil.Value = math.random(0, 1)
+    
+    -- Vehicle Hack
+    if Config.vehicleHack then
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("RemoteEvent") and (string.find(v.Name, "Vehicle") or string.find(v.Name, "Car") or string.find(v.Name, "Lock")) then
+                    v:FireServer("Unlock")
+                    v:FireServer("Start")
                 end
-                if spread and _G.NO_RECOIL then
-                    spread.Value = math.random(0, 1)
-                end
-            end
-        end
-        
-        if player.Character then
-            for _, tool in ipairs(player.Character:GetChildren()) do
-                if tool:IsA("Tool") then modifyWeapon(tool) end
-            end
-        end
-        
-        for _, tool in ipairs(player.Backpack:GetChildren()) do
-            if tool:IsA("Tool") then modifyWeapon(tool) end
-        end
-        
-        player.CharacterAdded:Connect(function(char)
-            task.wait(0.5)
-            for _, tool in ipairs(char:GetChildren()) do
-                if tool:IsA("Tool") then modifyWeapon(tool) end
             end
         end)
     end
-})
-
--- Car Speed Boost (randomized)
-UtilityTab:CreateButton({
-    Name = "Boost Car Speed (Stealth)",
-    Callback = function()
-        local player = game:GetService("Players").LocalPlayer
-        if player.Character then
-            local vehicle = player.Character:FindFirstChildOfClass("VehicleSeat")
-            if vehicle then
-                local parent = vehicle.Parent
-                local engine = parent:FindFirstChild("Engine")
-                if engine then
-                    local speed = engine:FindFirstChild("Speed")
-                    if speed then
-                        _G.CAR_BOOST = not _G.CAR_BOOST
-                        if _G.CAR_BOOST then
-                            speed.Value = speed.Value * math.random(15, 25) / 10
-                        else
-                            speed.Value = speed.Value / math.random(15, 25) / 10
-                        end
-                    end
+    
+    -- Bank Hack
+    if Config.bankHack then
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "ATM") or string.find(v.Name, "Cash")) then
+                    v:FireServer(true)
+                    v:FireServer("Hack")
                 end
             end
-        end
+        end)
     end
-})
-
--- No Fall Damage (with random reapply)
-UtilityTab:CreateButton({
-    Name = "No Fall Damage (Stealth)",
-    Callback = function()
-        local player = game:GetService("Players").LocalPlayer
-        _G.NO_FALL_DAMAGE = not _G.NO_FALL_DAMAGE
-        
-        if player.Character then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-            end
-        end
-        
-        -- Reapply randomly to avoid detection
-        if _G.NO_FALL_DAMAGE then
-            _G.NO_FALL_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.NO_FALL_DAMAGE and _G.STEALTH_MODE and math.random(1, 10) == 1 then
-                    if player.Character then
-                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                        if humanoid then
-                            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-                        end
-                    end
-                end
-            end)
-        else
-            if _G.NO_FALL_CONN then
-                _G.NO_FALL_CONN:Disconnect()
-                _G.NO_FALL_CONN = nil
-            end
-        end
-    end
-})
-
--- No Ragdoll (stealth)
-UtilityTab:CreateButton({
-    Name = "No Ragdoll (Stealth)",
-    Callback = function()
-        local player = game:GetService("Players").LocalPlayer
-        _G.NO_RAGDOLL = not _G.NO_RAGDOLL
-        
-        if player.Character then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-            end
-        end
-    end
-})
-
--- Infinite Stamina (with randomization)
-UtilityTab:CreateButton({
-    Name = "Infinite Stamina (Stealth)",
-    Callback = function()
-        local player = game:GetService("Players").LocalPlayer
-        _G.INF_STAMINA = not _G.INF_STAMINA
-        
-        if player.Character then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                local stamina = humanoid:FindFirstChild("Stamina")
-                if stamina then
-                    stamina.Value = math.random(95, 100)
-                end
-            end
-        end
-        
-        if _G.INF_STAMINA then
-            _G.STAMINA_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.INF_STAMINA and _G.STEALTH_MODE and math.random(1, 5) == 1 then
-                    if player.Character then
-                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                        if humanoid then
-                            local stamina = humanoid:FindFirstChild("Stamina")
-                            if stamina then
-                                stamina.Value = math.random(95, 100)
-                            end
-                        end
-                    end
-                end
-            end)
-        else
-            if _G.STAMINA_CONN then
-                _G.STAMINA_CONN:Disconnect()
-                _G.STAMINA_CONN = nil
-            end
-        end
-    end
-})
-
--- Noclip (stealth)
-UtilityTab:CreateButton({
-    Name = "Toggle Noclip (Stealth)",
-    Callback = function()
-        local player = game:GetService("Players").LocalPlayer
-        _G.NOCLIP = not _G.NOCLIP
-        
-        if player.Character then
-            for _, part in ipairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = not _G.NOCLIP
-                end
-            end
-        end
-    end
-})
+end)
 
 -- ================================
--- Auto Farm Features (Stealth)
+-- PLAYER ADDED/REMOVED
 -- ================================
+Players.PlayerAdded:Connect(UpdateWhitelist)
+Players.PlayerRemoving:Connect(UpdateWhitelist)
 
-local AutoTab = Window:CreateTab("Auto Farm", nil)
-
--- Auto Collect Cash (Stealth) - Mimics "Auto ATM" with random timing
-AutoTab:CreateButton({
-    Name = "Auto Collect Cash (Stealth)",
-    Callback = function()
-        _G.AUTO_COLLECT = not _G.AUTO_COLLECT
-        
-        if _G.AUTO_COLLECT then
-            local Players = game:GetService("Players")
-            local player = Players.LocalPlayer
-            
-            local function findCashRemotes()
-                for _, v in ipairs(game:GetDescendants()) do
-                    if v:IsA("RemoteEvent") and (string.find(v.Name, "Cash") or string.find(v.Name, "Collect") or string.find(v.Name, "Robbery")) then
-                        -- Randomize fire timing to avoid detection
-                        if math.random(1, 3) == 1 then
-                            v:FireServer()
-                        end
-                    end
-                end
-            end
-            
-            _G.AUTO_COLLECT_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.AUTO_COLLECT and _G.STEALTH_MODE then
-                    -- Random interval between 2-5 seconds
-                    if math.random(1, 30) == 1 then
-                        pcall(findCashRemotes)
-                    end
-                end
-            end)
-        else
-            if _G.AUTO_COLLECT_CONN then
-                _G.AUTO_COLLECT_CONN:Disconnect()
-                _G.AUTO_COLLECT_CONN = nil
-            end
-        end
-    end
-})
-
--- Auto Minigame (Stealth)
-AutoTab:CreateButton({
-    Name = "Auto Minigame (Stealth)",
-    Callback = function()
-        _G.AUTO_MINIGAME = not _G.AUTO_MINIGAME
-        
-        if _G.AUTO_MINIGAME then
-            local function finishMinigames()
-                for _, v in ipairs(game:GetDescendants()) do
-                    if v:IsA("RemoteEvent") and (string.find(v.Name, "Minigame") or string.find(v.Name, "Game")) then
-                        pcall(function()
-                            -- Randomize finish timing
-                            if math.random(1, 2) == 1 then
-                                v:FireServer("Finish")
-                            end
-                        end)
-                    end
-                end
-            end
-            
-            _G.MINIGAME_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.AUTO_MINIGAME and _G.STEALTH_MODE then
-                    if math.random(1, 20) == 1 then
-                        pcall(finishMinigames)
-                    end
-                end
-            end)
-        else
-            if _G.MINIGAME_CONN then
-                _G.MINIGAME_CONN:Disconnect()
-                _G.MINIGAME_CONN = nil
-            end
-        end
-    end
-})
-
--- Auto Fishing Farm (Stealth)
-AutoTab:CreateButton({
-    Name = "Auto Fishing Farm (Stealth)",
-    Callback = function()
-        _G.FISH_FARM = not _G.FISH_FARM
-        
-        if _G.FISH_FARM then
-            local function fish()
-                for _, v in ipairs(game:GetDescendants()) do
-                    if v:IsA("RemoteEvent") and string.find(v.Name, "Fish") then
-                        pcall(function()
-                            if math.random(1, 3) == 1 then
-                                v:FireServer("Cast")
-                            end
-                        end)
-                        break
-                    end
-                end
-            end
-            
-            local function sellFish()
-                for _, v in ipairs(game:GetDescendants()) do
-                    if v:IsA("RemoteEvent") and string.find(v.Name, "Sell") then
-                        pcall(function()
-                            if math.random(1, 3) == 1 then
-                                v:FireServer()
-                            end
-                        end)
-                        break
-                    end
-                end
-            end
-            
-            _G.FISH_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.FISH_FARM and _G.STEALTH_MODE then
-                    if math.random(1, 25) == 1 then
-                        pcall(fish)
-                        pcall(sellFish)
-                    end
-                end
-            end)
-        else
-            if _G.FISH_CONN then
-                _G.FISH_CONN:Disconnect()
-                _G.FISH_CONN = nil
-            end
-        end
-    end
-})
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        CreateESP(player)
+    end)
+end)
 
 -- ================================
--- Additional Stealth Features
+-- START BYPASS
 -- ================================
-
--- Randomize FOV (to avoid aimbot detection)
-AntiBanTab:CreateButton({
-    Name = "Randomize FOV (Anti-Detection)",
-    Callback = function()
-        _G.FOV_RANDOM = not _G.FOV_RANDOM
-        
-        if _G.FOV_RANDOM then
-            _G.FOV_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.FOV_RANDOM and _G.STEALTH_MODE then
-                    if math.random(1, 10) == 1 then
-                        local camera = workspace.CurrentCamera
-                        if camera then
-                            camera.FieldOfView = math.random(70, 90)
-                        end
-                    end
-                end
-            end)
-        else
-            if _G.FOV_CONN then
-                _G.FOV_CONN:Disconnect()
-                _G.FOV_CONN = nil
-            end
-        end
-    end
-})
-
--- Fake Lag (to hide teleportation)
-AntiBanTab:CreateButton({
-    Name = "Enable Fake Lag (Stealth)",
-    Callback = function()
-        _G.FAKE_LAG = not _G.FAKE_LAG
-        
-        if _G.FAKE_LAG then
-            local player = game:GetService("Players").LocalPlayer
-            _G.FAKE_LAG_CONN = game:GetService("RunService").Heartbeat:Connect(function()
-                if _G.FAKE_LAG and _G.STEALTH_MODE then
-                    if player and player.Character then
-                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                        if humanoid and math.random(1, 50) == 1 then
-                            humanoid.WalkSpeed = humanoid.WalkSpeed - math.random(1, 5)
-                            task.wait(0.1)
-                            humanoid.WalkSpeed = humanoid.WalkSpeed + math.random(1, 5)
-                        end
-                    end
-                end
-            end)
-        else
-            if _G.FAKE_LAG_CONN then
-                _G.FAKE_LAG_CONN:Disconnect()
-                _G.FAKE_LAG_CONN = nil
-            end
-        end
-    end
-})
+StartBypass()
 
 -- ================================
--- Notification
+-- INITIAL NOTIFICATION
 -- ================================
-Rayfield:Notify({
-    Title = "San Aurie Hub v2",
-    Content = "Stealth mode active. Anti-ban systems running.",
-    Duration = 5
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "San Aurie Ultimate v2",
+    Text = "All features loaded! Bypass system active.",
+    Duration = 4
 })
-
--- Start Anti-Ban by default
-_G.STEALTH_MODE = true
-startAntiBan()
