@@ -1,130 +1,890 @@
-local toggleButton = script.Parent
-local screenGui = toggleButton.Parent
+-- [[ m1v ULTIMATE HACK SCRIPT v8 ]] --
+-- Fixed: No interference with Roblox UI, Movement, Mouse Scroll
+-- All features: Aimbot + ESP + Auto Hack + Vehicle/Bank Hack + Bypass
 
--- 1. صناعة الواجهة الكبيرة (Main Executor Frame)
-local mainTab = Instance.new("Frame", screenGui)
-mainTab.Name = "MainTab"
-mainTab.Size = UDim2.new(0, 500, 0, 320)
-mainTab.Position = UDim2.new(0.5, -250, 0.5, -160) -- فـ الوسط نيشان
-mainTab.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Dark Background
-mainTab.Visible = false -- مخفية ف الأول
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local mainCorner = Instance.new("UICorner", mainTab)
-mainCorner.CornerRadius = UDim.new(0, 12)
+-- ================================
+-- CONFIG
+-- ================================
+local Config = {
+    -- Aimbot
+    aimbotEnabled = false,
+    FOVRadius = 150,
+    aimSmoothness = 5,
+    aimPart = "Head",
+    aimKey = Enum.KeyCode.E,
+    aimKeyName = "E",
+    
+    -- ESP
+    espEnabled = false,
+    showDistance = false,
+    showHealth = false,
+    showHitbox = false,
+    espColor = Color3.fromRGB(0, 255, 150),
+    
+    -- Whitelist
+    whitelisted = {},
+    
+    -- Auto Hack
+    autoHackEnabled = false,
+    
+    -- Vehicle Hack
+    vehicleHack = false,
+    
+    -- Bank Hack
+    bankHack = false,
+    
+    -- Anti-Ban
+    bypassEnabled = true,
+    stealthMode = false
+}
 
-local mainStroke = Instance.new("UIStroke", mainTab)
-mainStroke.Color = Color3.fromRGB(45, 45, 45)
-mainStroke.Thickness = 1.5
+-- ================================
+-- AUTO HACK SYSTEM
+-- ================================
+local GameRules
+pcall(function()
+    GameRules = require(game.ReplicatedStorage.Modules.GameRules)
+end)
 
--- 2. شريط العنوان (Top Title Bar)
-local titleBar = Instance.new("Frame", mainTab)
-titleBar.Size = UDim2.new(1, 0, 0, 35)
-titleBar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+local function ForceDisableHacking()
+    if not GameRules then return end
+    pcall(function()
+        GameRules.disableHacking = true
+    end)
+end
 
-local titleCorner = Instance.new("UICorner", titleBar)
-titleCorner.CornerRadius = UDim.new(0, 12)
+local function DisableHackingOff()
+    if not GameRules then return end
+    pcall(function()
+        GameRules.disableHacking = false
+    end)
+end
 
-local titleText = Instance.new("TextLabel", titleBar)
-titleText.Size = UDim2.new(1, -50, 1, 0)
-titleText.Position = UDim2.new(0, 15, 0, 0)
-titleText.BackgroundTransparency = 1
-titleText.Text = "Aman System - Map Destruction Tester v1.5"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.Font = Enum.Font.SourceSansBold
-titleText.TextSize = 16
-titleText.TextXAlignment = Enum.TextXAlignment.Left
+-- ================================
+-- ANTI-BAN / BYPASS SYSTEM
+-- ================================
+local function BypassAntiCheat()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("LocalScript") and (string.find(string.lower(v.Name), "anticheat") or string.find(string.lower(v.Name), "ac") or string.find(string.lower(v.Name), "detection")) then
+                v.Disabled = true
+                task.wait(0.1)
+                v.Disabled = false
+            end
+        end
+    end)
+end
 
--- 3. محرر النصوص (Luau Script Editor)
-local scriptBox = Instance.new("TextBox", mainTab)
-scriptBox.Size = UDim2.new(0, 340, 0, 240)
-scriptBox.Position = UDim2.new(0, 15, 0, 55)
-scriptBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-scriptBox.TextColor3 = Color3.fromRGB(230, 230, 230)
-scriptBox.Font = Enum.Font.Code
-scriptBox.TextSize = 13
-scriptBox.TextXAlignment = Enum.TextXAlignment.Left
-scriptBox.TextYAlignment = Enum.TextYAlignment.Top
-scriptBox.ClearTextOnFocus = false
-scriptBox.MultiLine = true
+local function HideScript()
+    pcall(function()
+        local function randomName()
+            local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            local str = ""
+            for i = 1, math.random(12, 20) do
+                str = str .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
+            end
+            return str
+        end
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
+                if v.Name ~= "StarterLocalScript" then
+                    pcall(function()
+                        v.Name = randomName()
+                    end)
+                end
+            end
+        end
+    end)
+end
 
--- وضع كود الـ Unanchored واجد داخل المحرر
-scriptBox.Text = [[for _, v in pairs(game.Workspace:GetDescendants()) do
-    if v:IsA("BasePart") then
-        v.Anchored = false
+local function StartBypass()
+    if Config.bypassEnabled then
+        pcall(BypassAntiCheat)
+        pcall(HideScript)
     end
-end]]
+end
 
-local boxCorner = Instance.new("UICorner", scriptBox)
-boxCorner.CornerRadius = UDim.new(0, 6)
+-- ================================
+-- GUI
+-- ================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "m1v"
 
-local boxStroke = Instance.new("UIStroke", scriptBox)
-boxStroke.Color = Color3.fromRGB(35, 80, 45) -- إطار خضر خفيف بحال الصورة
-boxStroke.Thickness = 1
+-- Mini Button
+local MiniButton = Instance.new("TextButton")
+MiniButton.Name = "MiniButton"
+MiniButton.Size = UDim2.new(0, 50, 0, 50)
+MiniButton.Position = UDim2.new(0, 10, 0, 10)
+MiniButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MiniButton.Text = "⚡"
+MiniButton.TextColor3 = Color3.fromRGB(0, 255, 150)
+MiniButton.TextSize = 24
+MiniButton.Font = Enum.Font.SourceSansBold
+MiniButton.Active = true
+MiniButton.Draggable = true
+MiniButton.Parent = ScreenGui
 
--- 4. زر التشغيل (Execute Unanchored)
-local execBtn = Instance.new("TextButton", mainTab)
-execBtn.Size = UDim2.new(0, 110, 0, 45)
-execBtn.Position = UDim2.new(0, 370, 0, 95)
-execBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 90) -- لون أخضر للـ Execution
-execBtn.Text = "Execute\nUnanchored"
-execBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-execBtn.Font = Enum.Font.SourceSansBold
-execBtn.TextSize = 14
+local MiniCorner = Instance.new("UICorner")
+MiniCorner.CornerRadius = UDim.new(0, 6)
+MiniCorner.Parent = MiniButton
 
-local execCorner = Instance.new("UICorner", execBtn)
-execCorner.CornerRadius = UDim.new(0, 8)
+local MiniStroke = Instance.new("UIStroke")
+MiniStroke.Color = Color3.fromRGB(0, 255, 150)
+MiniStroke.Thickness = 1.5
+MiniStroke.Parent = MiniButton
 
--- 5. زر المسح (Clear)
-local clearBtn = Instance.new("TextButton", mainTab)
-clearBtn.Size = UDim2.new(0, 110, 0, 35)
-clearBtn.Position = UDim2.new(0, 370, 0, 150)
-clearBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50) -- لون أحمر
-clearBtn.Text = "Clear"
-clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-clearBtn.Font = Enum.Font.SourceSansBold
-clearBtn.TextSize = 14
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 450, 0, 580)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -290)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
 
-local clearCorner = Instance.new("UICorner", clearBtn)
-clearCorner.CornerRadius = UDim.new(0, 8)
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
 
--- 6. ستايل زر المربع الصغير (Toggle Button ⚡)
-toggleButton.Size = UDim2.new(0, 45, 0, 45)
-toggleButton.Position = UDim2.new(0, 20, 0, 20)
-toggleButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-toggleButton.Text = "⚡"
-toggleButton.TextColor3 = Color3.fromRGB(0, 255, 140)
-toggleButton.TextSize = 22
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+Title.Text = "m1v Ultimate v8"
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
+Title.TextSize = 16
+Title.Font = Enum.Font.SourceSansBold
+Title.Parent = MainFrame
 
-local btnCorner = Instance.new("UICorner", toggleButton)
-btnCorner.CornerRadius = UDim.new(0, 8)
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = MainFrame
 
-local btnStroke = Instance.new("UIStroke", toggleButton)
-btnStroke.Color = Color3.fromRGB(45, 45, 45)
-btnStroke.Thickness = 1.5
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 5)
+CloseCorner.Parent = CloseBtn
 
-
---- 🕹️ الخدمة والربط (Logic) ---
-
--- كليكة المربع الصغير تفتح وتخبي الـ Executor
-toggleButton.MouseButton1Click:Connect(function()
-	mainTab.Visible = not mainTab.Visible
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
 end)
 
--- زر الـ Clear يمسح النص
-clearBtn.MouseButton1Click:Connect(function()
-	scriptBox.Text = ""
+MiniButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
 end)
 
--- زر الـ Execute ينفذ الكود اللي مكتوب وسط الـ TextBox ديريكت
-execBtn.MouseButton1Click:Connect(function()
-	print("[Aman Test]: Executing Code from Executor...")
-	
-	-- تنفيذ عملية الـ Unanchored على الماب كاملة
-	for _, v in pairs(game.Workspace:GetDescendants()) do
-		if v:IsA("BasePart") and v.Name ~= "Terrain" and not v:IsDescendantOf(game.Players.LocalPlayer.Character) then
-			v.Anchored = false
-		end
-	end
-	
-	print("[Aman Test]: Map Unanchored successfully. Testing Aman Anti-Cheat response.")
+-- Tab System
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(0, 100, 1, -40)
+TabBar.Position = UDim2.new(0, 0, 0, 40)
+TabBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+TabBar.Parent = MainFrame
+
+local TabCorner = Instance.new("UICorner")
+TabCorner.CornerRadius = UDim.new(0, 5)
+TabCorner.Parent = TabBar
+
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -110, 1, -50)
+Container.Position = UDim2.new(0, 105, 0, 45)
+Container.BackgroundTransparency = 1
+Container.Parent = MainFrame
+
+local function CreateTab(name, order)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 35)
+    btn.Position = UDim2.new(0, 5, 0, (order - 1) * 40 + 5)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Parent = TabBar
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = btn
+    
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, 0, 1, 0)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 2
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 450)
+    scroll.Visible = (order == 1)
+    scroll.Parent = Container
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 5)
+    layout.Parent = scroll
+    
+    btn.MouseButton1Click:Connect(function()
+        for _, child in ipairs(Container:GetChildren()) do
+            if child:IsA("ScrollingFrame") then
+                child.Visible = false
+            end
+        end
+        scroll.Visible = true
+    end)
+    
+    return scroll
+end
+
+local function CreateToggle(text, parent, configKey)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -5, 0, 35)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    frame.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 200, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextSize = 12
+    label.Font = Enum.Font.SourceSans
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.Parent = frame
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 50, 0, 22)
+    btn.Position = UDim2.new(1, -60, 0.5, -11)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 10
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    
+    local state = Config[configKey]
+    btn.BackgroundColor3 = state and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(150, 50, 50)
+    btn.Text = state and "ON" or "OFF"
+    btn.Parent = frame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        Config[configKey] = not Config[configKey]
+        local newState = Config[configKey]
+        btn.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(150, 50, 50)
+        btn.Text = newState and "ON" or "OFF"
+        
+        if configKey == "autoHackEnabled" then
+            if newState then
+                ForceDisableHacking()
+            else
+                DisableHackingOff()
+            end
+        end
+    end)
+end
+
+local function CreateButton(text, parent, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -5, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.SourceSans
+    btn.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Create Tabs
+local AimbotTab = CreateTab("Aimbot", 1)
+local ESPTab = CreateTab("ESP", 2)
+local WhitelistTab = CreateTab("Friendly", 3)
+local HackTab = CreateTab("Hacks", 4)
+local BypassTab = CreateTab("Bypass", 5)
+
+-- ================================
+-- AIMBOT TAB
+-- ================================
+CreateToggle("Enable Aimbot", AimbotTab, "aimbotEnabled")
+CreateToggle("Show FOV Circle", AimbotTab, "aimbotEnabled")
+
+-- FOV Slider
+local fovFrame = Instance.new("Frame")
+fovFrame.Size = UDim2.new(1, -5, 0, 35)
+fovFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+fovFrame.Parent = AimbotTab
+
+local fovCorner = Instance.new("UICorner")
+fovCorner.CornerRadius = UDim.new(0, 5)
+fovCorner.Parent = fovFrame
+
+local fovLabel = Instance.new("TextLabel")
+fovLabel.Size = UDim2.new(0, 200, 1, 0)
+fovLabel.Position = UDim2.new(0, 10, 0, 0)
+fovLabel.Text = "FOV Radius: " .. Config.FOVRadius
+fovLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+fovLabel.TextSize = 12
+fovLabel.Font = Enum.Font.SourceSans
+fovLabel.TextXAlignment = Enum.TextXAlignment.Left
+fovLabel.BackgroundTransparency = 1
+fovLabel.Parent = fovFrame
+
+local fovBtn = Instance.new("TextButton")
+fovBtn.Size = UDim2.new(0, 50, 0, 22)
+fovBtn.Position = UDim2.new(1, -60, 0.5, -11)
+fovBtn.Font = Enum.Font.SourceSansBold
+fovBtn.TextSize = 10
+fovBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+fovBtn.Text = "100"
+fovBtn.Parent = fovFrame
+
+local fovCornerBtn = Instance.new("UICorner")
+fovCornerBtn.CornerRadius = UDim.new(0, 4)
+fovCornerBtn.Parent = fovBtn
+
+local fovValues = {50, 75, 100, 125, 150, 175, 200, 250, 300}
+local fovIndex = 3
+
+fovBtn.MouseButton1Click:Connect(function()
+    fovIndex = fovIndex % #fovValues + 1
+    Config.FOVRadius = fovValues[fovIndex]
+    fovBtn.Text = tostring(Config.FOVRadius)
+    fovLabel.Text = "FOV Radius: " .. Config.FOVRadius
 end)
+
+-- Aim Part Selector
+local partFrame = Instance.new("Frame")
+partFrame.Size = UDim2.new(1, -5, 0, 35)
+partFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+partFrame.Parent = AimbotTab
+
+local partCorner = Instance.new("UICorner")
+partCorner.CornerRadius = UDim.new(0, 5)
+partCorner.Parent = partFrame
+
+local partLabel = Instance.new("TextLabel")
+partLabel.Size = UDim2.new(0, 200, 1, 0)
+partLabel.Position = UDim2.new(0, 10, 0, 0)
+partLabel.Text = "Aim Part: Head"
+partLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+partLabel.TextSize = 12
+partLabel.Font = Enum.Font.SourceSans
+partLabel.TextXAlignment = Enum.TextXAlignment.Left
+partLabel.BackgroundTransparency = 1
+partLabel.Parent = partFrame
+
+local partBtn = Instance.new("TextButton")
+partBtn.Size = UDim2.new(0, 60, 0, 22)
+partBtn.Position = UDim2.new(1, -70, 0.5, -11)
+partBtn.Font = Enum.Font.SourceSansBold
+partBtn.TextSize = 10
+partBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+partBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+partBtn.Text = "Head"
+partBtn.Parent = partFrame
+
+local partCornerBtn = Instance.new("UICorner")
+partCornerBtn.CornerRadius = UDim.new(0, 4)
+partCornerBtn.Parent = partBtn
+
+local parts = {"Head", "HumanoidRootPart", "Torso"}
+local partIndex = 1
+
+partBtn.MouseButton1Click:Connect(function()
+    partIndex = partIndex % #parts + 1
+    Config.aimPart = parts[partIndex]
+    partBtn.Text = Config.aimPart
+    partLabel.Text = "Aim Part: " .. Config.aimPart
+end)
+
+-- Aim Key Selector
+local keyFrame = Instance.new("Frame")
+keyFrame.Size = UDim2.new(1, -5, 0, 35)
+keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+keyFrame.Parent = AimbotTab
+
+local keyCorner = Instance.new("UICorner")
+keyCorner.CornerRadius = UDim.new(0, 5)
+keyCorner.Parent = keyFrame
+
+local keyLabel = Instance.new("TextLabel")
+keyLabel.Size = UDim2.new(0, 200, 1, 0)
+keyLabel.Position = UDim2.new(0, 10, 0, 0)
+keyLabel.Text = "Aim Key: " .. Config.aimKeyName
+keyLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+keyLabel.TextSize = 12
+keyLabel.Font = Enum.Font.SourceSans
+keyLabel.TextXAlignment = Enum.TextXAlignment.Left
+keyLabel.BackgroundTransparency = 1
+keyLabel.Parent = keyFrame
+
+local keyBtn = Instance.new("TextButton")
+keyBtn.Size = UDim2.new(0, 60, 0, 22)
+keyBtn.Position = UDim2.new(1, -70, 0.5, -11)
+keyBtn.Font = Enum.Font.SourceSansBold
+keyBtn.TextSize = 10
+keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+keyBtn.Text = "E"
+keyBtn.Parent = keyFrame
+
+local keyCornerBtn = Instance.new("UICorner")
+keyCornerBtn.CornerRadius = UDim.new(0, 4)
+keyCornerBtn.Parent = keyBtn
+
+local keyList = {"E", "Q", "F", "R", "T", "G", "LeftShift", "LeftControl", "X", "C", "V", "B"}
+local keyIndex = 1
+
+keyBtn.MouseButton1Click:Connect(function()
+    keyIndex = keyIndex % #keyList + 1
+    local keyName = keyList[keyIndex]
+    Config.aimKeyName = keyName
+    Config.aimKey = Enum.KeyCode[keyName]
+    keyBtn.Text = keyName
+    keyLabel.Text = "Aim Key: " .. keyName
+end)
+
+-- Smoothness Slider
+local smoothFrame = Instance.new("Frame")
+smoothFrame.Size = UDim2.new(1, -5, 0, 35)
+smoothFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+smoothFrame.Parent = AimbotTab
+
+local smoothCorner = Instance.new("UICorner")
+smoothCorner.CornerRadius = UDim.new(0, 5)
+smoothCorner.Parent = smoothFrame
+
+local smoothLabel = Instance.new("TextLabel")
+smoothLabel.Size = UDim2.new(0, 200, 1, 0)
+smoothLabel.Position = UDim2.new(0, 10, 0, 0)
+smoothLabel.Text = "Smoothness: " .. Config.aimSmoothness
+smoothLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+smoothLabel.TextSize = 12
+smoothLabel.Font = Enum.Font.SourceSans
+smoothLabel.TextXAlignment = Enum.TextXAlignment.Left
+smoothLabel.BackgroundTransparency = 1
+smoothLabel.Parent = smoothFrame
+
+local smoothBtn = Instance.new("TextButton")
+smoothBtn.Size = UDim2.new(0, 50, 0, 22)
+smoothBtn.Position = UDim2.new(1, -60, 0.5, -11)
+smoothBtn.Font = Enum.Font.SourceSansBold
+smoothBtn.TextSize = 10
+smoothBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+smoothBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+smoothBtn.Text = tostring(Config.aimSmoothness)
+smoothBtn.Parent = smoothFrame
+
+local smoothCornerBtn = Instance.new("UICorner")
+smoothCornerBtn.CornerRadius = UDim.new(0, 4)
+smoothCornerBtn.Parent = smoothBtn
+
+local smoothValues = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20}
+local smoothIndex = 5
+
+smoothBtn.MouseButton1Click:Connect(function()
+    smoothIndex = smoothIndex % #smoothValues + 1
+    Config.aimSmoothness = smoothValues[smoothIndex]
+    smoothBtn.Text = tostring(Config.aimSmoothness)
+    smoothLabel.Text = "Smoothness: " .. Config.aimSmoothness
+end)
+
+-- ================================
+-- ESP TAB
+-- ================================
+CreateToggle("Enable ESP", ESPTab, "espEnabled")
+CreateToggle("Show Distance", ESPTab, "showDistance")
+CreateToggle("Show Health", ESPTab, "showHealth")
+CreateToggle("Show Hitbox", ESPTab, "showHitbox")
+
+-- ================================
+-- WHITELIST TAB
+-- ================================
+local function UpdateWhitelist()
+    for _, child in ipairs(WhitelistTab:GetChildren()) do
+        if child:IsA("TextButton") and child.Name ~= "UIListLayout" and child.Name ~= "UICorner" then
+            child:Destroy()
+        end
+    end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Name = player.Name
+            btn.Size = UDim2.new(1, -5, 0, 30)
+            btn.BackgroundColor3 = Config.whitelisted[player.Name] and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 40, 45)
+            btn.Text = player.Name .. (Config.whitelisted[player.Name] and " ✅" or "")
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.TextSize = 12
+            btn.Font = Enum.Font.SourceSans
+            btn.Parent = WhitelistTab
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 5)
+            corner.Parent = btn
+            
+            btn.MouseButton1Click:Connect(function()
+                Config.whitelisted[player.Name] = not Config.whitelisted[player.Name]
+                btn.Text = player.Name .. (Config.whitelisted[player.Name] and " ✅" or "")
+                btn.BackgroundColor3 = Config.whitelisted[player.Name] and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(40, 40, 45)
+            end)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(UpdateWhitelist)
+Players.PlayerRemoving:Connect(UpdateWhitelist)
+UpdateWhitelist()
+
+-- ================================
+-- HACK TAB
+-- ================================
+CreateToggle("Enable Auto Hack (GameRules)", HackTab, "autoHackEnabled")
+
+CreateButton("Force Enable Hack Now", HackTab, function()
+    if Config.autoHackEnabled then
+        ForceDisableHacking()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "m1v Auto Hack",
+            Text = "Hack forced enabled!",
+            Duration = 2
+        })
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "m1v Auto Hack",
+            Text = "Enable Auto Hack first!",
+            Duration = 2
+        })
+    end
+end)
+
+CreateButton("Disable Hack Now", HackTab, function()
+    DisableHackingOff()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "m1v Auto Hack",
+        Text = "Hack disabled!",
+        Duration = 2
+    })
+end)
+
+CreateButton("Hack Vehicles (Unlock All)", HackTab, function()
+    Config.vehicleHack = not Config.vehicleHack
+    if Config.vehicleHack then
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (string.find(v.Name, "Vehicle") or string.find(v.Name, "Car") or string.find(v.Name, "Lock")) then
+                pcall(function() v:FireServer("Unlock") end)
+            end
+        end
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "m1v Vehicle Hack",
+            Text = "Vehicles unlocked!",
+            Duration = 2
+        })
+    end
+end)
+
+CreateButton("Hack Banks (Auto Cash)", HackTab, function()
+    Config.bankHack = not Config.bankHack
+    if Config.bankHack then
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "Cash")) then
+                pcall(function() v:FireServer(true) end)
+            end
+        end
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "m1v Bank Hack",
+            Text = "Bank hack activated!",
+            Duration = 2
+        })
+    end
+end)
+
+-- ================================
+-- BYPASS TAB
+-- ================================
+CreateToggle("Enable Bypass System", BypassTab, "bypassEnabled")
+
+CreateButton("Run Anti-Cheat Bypass", BypassTab, function()
+    pcall(BypassAntiCheat)
+    pcall(HideScript)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "m1v Bypass",
+        Text = "Anti-cheat bypassed successfully!",
+        Duration = 2
+    })
+end)
+
+CreateButton("Randomize Script Names", BypassTab, function()
+    pcall(HideScript)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "m1v Bypass",
+        Text = "Script names randomized!",
+        Duration = 2
+    })
+end)
+
+CreateButton("Clear Console (Remove Traces)", BypassTab, function()
+    pcall(function()
+        local console = game:GetService("CoreGui"):FindFirstChild("RobloxGui"):FindFirstChild("Console")
+        if console then
+            console:Clear()
+        end
+    end)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "m1v Bypass",
+        Text = "Console cleared!",
+        Duration = 2
+    })
+end)
+
+-- ================================
+-- FOV CIRCLE
+-- ================================
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Size = UDim2.new(0, Config.FOVRadius * 2, 0, Config.FOVRadius * 2)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = false
+FOVCircle.Parent = ScreenGui
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Thickness = 1.5
+FOVStroke.Color = Color3.fromRGB(0, 255, 150)
+FOVStroke.Parent = FOVCircle
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1, 0)
+FOVCorner.Parent = FOVCircle
+
+-- ================================
+-- AIMBOT FUNCTION
+-- ================================
+local function GetClosestPlayer()
+    local closest = nil
+    local shortest = Config.FOVRadius
+    local mousePos = UserInputService:GetMouseLocation()
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and not Config.whitelisted[player.Name] and player.Character then
+            local part = player.Character:FindFirstChild(Config.aimPart)
+            if part then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if dist < shortest then
+                        shortest = dist
+                        closest = player
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- ================================
+-- ESP SYSTEM
+-- ================================
+local ESPObjects = {}
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    if ESPObjects[player] then return end
+    
+    local char = player.Character
+    if not char then return end
+    
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+    
+    local bill = Instance.new("BillboardGui")
+    bill.Name = "ESP_Label"
+    bill.Size = UDim2.new(0, 200, 0, 80)
+    bill.AlwaysOnTop = true
+    bill.StudsOffset = Vector3.new(0, 3, 0)
+    bill.Enabled = false
+    bill.Parent = head
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Config.espColor
+    label.TextSize = 12
+    label.Font = Enum.Font.SourceSansBold
+    label.TextWrapped = true
+    label.Parent = bill
+    
+    ESPObjects[player] = bill
+end
+
+-- ================================
+-- MAIN LOOP
+-- ================================
+RunService.RenderStepped:Connect(function()
+    -- FOV Circle
+    local mousePos = UserInputService:GetMouseLocation()
+    FOVCircle.Position = UDim2.new(0, mousePos.X - Config.FOVRadius, 0, mousePos.Y - Config.FOVRadius)
+    FOVCircle.Size = UDim2.new(0, Config.FOVRadius * 2, 0, Config.FOVRadius * 2)
+    FOVCircle.Visible = Config.aimbotEnabled
+    
+    -- Auto Hack
+    if Config.autoHackEnabled and GameRules then
+        pcall(function()
+            GameRules.disableHacking = true
+        end)
+    end
+    
+    -- ESP Update
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char then
+                local head = char:FindFirstChild("Head")
+                if head then
+                    local bill = head:FindFirstChild("ESP_Label")
+                    if not bill then
+                        CreateESP(player)
+                        bill = head:FindFirstChild("ESP_Label")
+                    end
+                    
+                    if bill and Config.espEnabled then
+                        bill.Enabled = true
+                        local label = bill:FindFirstChildOfClass("TextLabel")
+                        if label then
+                            local text = ""
+                            
+                            -- Name
+                            text = text .. player.Name
+                            
+                            -- Distance
+                            if Config.showDistance and LocalPlayer.Character then
+                                local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                if root and player.Character then
+                                    local pRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                                    if pRoot then
+                                        local dist = math.floor((root.Position - pRoot.Position).Magnitude)
+                                        text = text .. "\n" .. tostring(dist) .. "m"
+                                    end
+                                end
+                            end
+                            
+                            -- Health
+                            if Config.showHealth then
+                                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                                if humanoid then
+                                    text = text .. "\nHP: " .. math.floor(humanoid.Health)
+                                end
+                            end
+                            
+                            label.Text = text
+                        end
+                    elseif bill then
+                        bill.Enabled = false
+                    end
+                    
+                    -- Hitbox (highlight)
+                    if Config.showHitbox then
+                        for _, part in ipairs(char:GetChildren()) do
+                            if part:IsA("BasePart") and not part:FindFirstChild("HitboxHighlight") then
+                                local hl = Instance.new("Highlight")
+                                hl.Name = "HitboxHighlight"
+                                hl.Adornee = part
+                                hl.FillColor = Color3.fromRGB(255, 0, 0)
+                                hl.FillTransparency = 0.3
+                                hl.Parent = part
+                            end
+                        end
+                    else
+                        for _, part in ipairs(char:GetChildren()) do
+                            if part:IsA("BasePart") then
+                                local hl = part:FindFirstChild("HitboxHighlight")
+                                if hl then hl:Destroy() end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Aimbot
+    if Config.aimbotEnabled and UserInputService:IsKeyDown(Config.aimKey) then
+        local target = GetClosestPlayer()
+        if target and target.Character then
+            local part = target.Character:FindFirstChild(Config.aimPart)
+            if part then
+                local pos = part.Position
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, pos)
+            end
+        end
+    end
+    
+    -- Vehicle Hack
+    if Config.vehicleHack then
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("RemoteEvent") and (string.find(v.Name, "Vehicle") or string.find(v.Name, "Car") or string.find(v.Name, "Lock")) then
+                    v:FireServer("Unlock")
+                    v:FireServer("Start")
+                end
+            end
+        end)
+    end
+    
+    -- Bank Hack
+    if Config.bankHack then
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "Cash")) then
+                    v:FireServer(true)
+                    v:FireServer("Hack")
+                end
+            end
+        end)
+    end
+end)
+
+-- ================================
+-- PLAYER ADDED/REMOVED
+-- ================================
+Players.PlayerAdded:Connect(UpdateWhitelist)
+Players.PlayerRemoving:Connect(UpdateWhitelist)
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        CreateESP(player)
+    end)
+end)
+
+-- ================================
+-- START BYPASS
+-- ================================
+StartBypass()
+
+-- ================================
+-- INITIAL NOTIFICATION
+-- ================================
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "m1v Ultimate v8",
+    Text = "All features loaded! Click ⚡ to open menu.",
+    Duration = 4
+})
