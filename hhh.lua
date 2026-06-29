@@ -1,5 +1,5 @@
--- [[ San Aurie Ultimate Hack Script v2 ]] --
--- Added Anti-Ban / Bypass System
+-- [[ San Aurie Ultimate Hack Script v3 ]] --
+-- Added Mini Menu Button + Aimbot Key Selection
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -17,6 +17,7 @@ local Config = {
     aimSmoothness = 5,
     aimPart = "Head",
     aimKey = Enum.KeyCode.E,
+    aimKeyName = "E",
     
     -- ESP
     espEnabled = false,
@@ -45,11 +46,8 @@ local Config = {
 -- ================================
 -- ANTI-BAN / BYPASS SYSTEM
 -- ================================
-
--- 1. Bypass the Anti-Cheat (if present)
 local function BypassAntiCheat()
     pcall(function()
-        -- Disable anti-cheat scripts
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("LocalScript") and (string.find(v.Name, "AntiCheat") or string.find(v.Name, "AC") or string.find(v.Name, "Detection")) then
                 v.Disabled = true
@@ -57,8 +55,6 @@ local function BypassAntiCheat()
                 v.Disabled = false
             end
         end
-        
-        -- Remove any detection modules
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("ModuleScript") and (string.find(v.Name, "AntiCheat") or string.find(v.Name, "AC")) then
                 v:Destroy()
@@ -67,12 +63,9 @@ local function BypassAntiCheat()
     end)
 end
 
--- 2. Fake Client Data (to avoid detection)
 local function FakeClientData()
     pcall(function()
         local player = LocalPlayer
-        
-        -- Fake ping
         if player:FindFirstChild("Network") then
             local network = player.Network
             local ping = network:FindFirstChild("Ping")
@@ -80,8 +73,6 @@ local function FakeClientData()
                 ping.Value = math.random(20, 80)
             end
         end
-        
-        -- Fake FPS
         if game:GetService("Stats"):FindFirstChild("FPS") then
             local fps = game:GetService("Stats").FPS
             fps.Value = math.random(30, 120)
@@ -89,13 +80,11 @@ local function FakeClientData()
     end)
 end
 
--- 3. Randomize Movement (to avoid detection patterns)
 local function RandomizeMovement()
     pcall(function()
         if LocalPlayer and LocalPlayer.Character then
             local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                -- Slightly randomize walk speed
                 local currentSpeed = humanoid.WalkSpeed
                 humanoid.WalkSpeed = currentSpeed + math.random(-2, 2)
                 task.wait(0.5)
@@ -105,10 +94,8 @@ local function RandomizeMovement()
     end)
 end
 
--- 4. Hide the script from detection
 local function HideScript()
     pcall(function()
-        -- Rename all script objects
         local function randomName()
             local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
             local str = ""
@@ -117,7 +104,6 @@ local function HideScript()
             end
             return str
         end
-        
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
                 if v.Name ~= "StarterLocalScript" then
@@ -130,12 +116,9 @@ local function HideScript()
     end)
 end
 
--- 5. Bypass Remote Events (to avoid logging)
 local function BypassRemoteEvents()
     pcall(function()
         local originalFireServer = game:GetService("ReplicatedStorage").RemoteEvent.FireServer
-        
-        -- Override FireServer to add random delays
         game:GetService("ReplicatedStorage").RemoteEvent.FireServer = function(...)
             if Config.stealthMode then
                 task.wait(math.random(1, 5) / 100)
@@ -145,7 +128,6 @@ local function BypassRemoteEvents()
     end)
 end
 
--- 6. Fake Lag (to hide teleportation)
 local function FakeLag()
     pcall(function()
         if Config.stealthMode and math.random(1, 20) == 1 then
@@ -161,7 +143,6 @@ local function FakeLag()
     end)
 end
 
--- 7. Randomize FOV (to avoid aimbot detection)
 local function RandomizeFOV()
     pcall(function()
         if Config.stealthMode and math.random(1, 15) == 1 then
@@ -172,15 +153,11 @@ local function RandomizeFOV()
     end)
 end
 
--- Start Bypass System
 local function StartBypass()
     if Config.bypassEnabled then
-        -- Run bypass functions
         pcall(BypassAntiCheat)
         pcall(BypassRemoteEvents)
         pcall(HideScript)
-        
-        -- Start continuous bypass loop
         _G.BYPASS_CONN = RunService.Heartbeat:Connect(function()
             if Config.bypassEnabled then
                 pcall(FakeClientData)
@@ -193,35 +170,89 @@ local function StartBypass()
 end
 
 -- ================================
--- GUI
+-- MINI MENU BUTTON (Square)
 -- ================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.Name = "m1v"
+ScreenGui.Name = "SanAurieHub"
 
+-- Mini Button (Square)
+local MiniButton = Instance.new("TextButton")
+MiniButton.Name = "MiniButton"
+MiniButton.Size = UDim2.new(0, 50, 0, 50)
+MiniButton.Position = UDim2.new(0, 10, 0, 10)
+MiniButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MiniButton.Text = "⚡"
+MiniButton.TextColor3 = Color3.fromRGB(0, 255, 150)
+MiniButton.TextSize = 24
+MiniButton.Font = Enum.Font.SourceSansBold
+MiniButton.Active = true
+MiniButton.Draggable = true
+MiniButton.Parent = ScreenGui
+
+local MiniCorner = Instance.new("UICorner")
+MiniCorner.CornerRadius = UDim.new(0, 6)
+MiniCorner.Parent = MiniButton
+
+local MiniStroke = Instance.new("UIStroke")
+MiniStroke.Color = Color3.fromRGB(0, 255, 150)
+MiniStroke.Thickness = 1.5
+MiniStroke.Parent = MiniButton
+
+-- ================================
+-- MAIN FRAME
+-- ================================
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 550)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
+MainFrame.Size = UDim2.new(0, 450, 0, 580)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -290)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = false
 MainFrame.Parent = ScreenGui
 
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 10)
-Corner.Parent = MainFrame
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Title.Text = "San Aurie Ultimate v2 (Bypass)"
+Title.Text = "San Aurie Ultimate v3"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
 Title.Parent = MainFrame
 
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 5)
+CloseCorner.Parent = CloseBtn
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- Toggle Main Frame with Mini Button
+MiniButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- ================================
+-- TAB SYSTEM
+-- ================================
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(0, 100, 1, -40)
 TabBar.Position = UDim2.new(0, 0, 0, 40)
@@ -319,8 +350,6 @@ local function CreateToggle(text, parent, configKey)
         local newState = Config[configKey]
         btn.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(150, 50, 50)
         btn.Text = newState and "ON" or "OFF"
-        
-        -- Start bypass when enabled
         if configKey == "bypassEnabled" and newState then
             StartBypass()
         end
@@ -445,6 +474,100 @@ partBtn.MouseButton1Click:Connect(function()
     Config.aimPart = parts[partIndex]
     partBtn.Text = Config.aimPart
     partLabel.Text = "Aim Part: " .. Config.aimPart
+end)
+
+-- ================================
+-- AIM KEY SELECTOR (NEW)
+-- ================================
+local keyFrame = Instance.new("Frame")
+keyFrame.Size = UDim2.new(1, -5, 0, 35)
+keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+keyFrame.Parent = AimbotTab
+
+local keyCorner = Instance.new("UICorner")
+keyCorner.CornerRadius = UDim.new(0, 5)
+keyCorner.Parent = keyFrame
+
+local keyLabel = Instance.new("TextLabel")
+keyLabel.Size = UDim2.new(0, 200, 1, 0)
+keyLabel.Position = UDim2.new(0, 10, 0, 0)
+keyLabel.Text = "Aim Key: " .. Config.aimKeyName
+keyLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+keyLabel.TextSize = 12
+keyLabel.Font = Enum.Font.SourceSans
+keyLabel.TextXAlignment = Enum.TextXAlignment.Left
+keyLabel.BackgroundTransparency = 1
+keyLabel.Parent = keyFrame
+
+local keyBtn = Instance.new("TextButton")
+keyBtn.Size = UDim2.new(0, 60, 0, 22)
+keyBtn.Position = UDim2.new(1, -70, 0.5, -11)
+keyBtn.Font = Enum.Font.SourceSansBold
+keyBtn.TextSize = 10
+keyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+keyBtn.Text = "E"
+keyBtn.Parent = keyFrame
+
+local keyCornerBtn = Instance.new("UICorner")
+keyCornerBtn.CornerRadius = UDim.new(0, 4)
+keyCornerBtn.Parent = keyBtn
+
+local keyList = {"E", "Q", "F", "R", "T", "G", "LeftShift", "LeftControl", "X", "C", "V", "B"}
+local keyIndex = 1
+
+keyBtn.MouseButton1Click:Connect(function()
+    keyIndex = keyIndex % #keyList + 1
+    local keyName = keyList[keyIndex]
+    Config.aimKeyName = keyName
+    Config.aimKey = Enum.KeyCode[keyName]
+    keyBtn.Text = keyName
+    keyLabel.Text = "Aim Key: " .. keyName
+end)
+
+-- Smoothness Slider
+local smoothFrame = Instance.new("Frame")
+smoothFrame.Size = UDim2.new(1, -5, 0, 35)
+smoothFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+smoothFrame.Parent = AimbotTab
+
+local smoothCorner = Instance.new("UICorner")
+smoothCorner.CornerRadius = UDim.new(0, 5)
+smoothCorner.Parent = smoothFrame
+
+local smoothLabel = Instance.new("TextLabel")
+smoothLabel.Size = UDim2.new(0, 200, 1, 0)
+smoothLabel.Position = UDim2.new(0, 10, 0, 0)
+smoothLabel.Text = "Smoothness: " .. Config.aimSmoothness
+smoothLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+smoothLabel.TextSize = 12
+smoothLabel.Font = Enum.Font.SourceSans
+smoothLabel.TextXAlignment = Enum.TextXAlignment.Left
+smoothLabel.BackgroundTransparency = 1
+smoothLabel.Parent = smoothFrame
+
+local smoothBtn = Instance.new("TextButton")
+smoothBtn.Size = UDim2.new(0, 50, 0, 22)
+smoothBtn.Position = UDim2.new(1, -60, 0.5, -11)
+smoothBtn.Font = Enum.Font.SourceSansBold
+smoothBtn.TextSize = 10
+smoothBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+smoothBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+smoothBtn.Text = tostring(Config.aimSmoothness)
+smoothBtn.Parent = smoothFrame
+
+local smoothCornerBtn = Instance.new("UICorner")
+smoothCornerBtn.CornerRadius = UDim.new(0, 4)
+smoothCornerBtn.Parent = smoothBtn
+
+local smoothValues = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20}
+local smoothIndex = 5
+
+smoothBtn.MouseButton1Click:Connect(function()
+    smoothIndex = smoothIndex % #smoothValues + 1
+    Config.aimSmoothness = smoothValues[smoothIndex]
+    smoothBtn.Text = tostring(Config.aimSmoothness)
+    smoothLabel.Text = "Smoothness: " .. Config.aimSmoothness
 end)
 
 -- ================================
@@ -722,7 +845,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- Aimbot
+    -- Aimbot (with selected key)
     if Config.aimbotEnabled and UserInputService:IsKeyDown(Config.aimKey) then
         local target = GetClosestPlayer()
         if target and target.Character then
@@ -794,7 +917,7 @@ StartBypass()
 -- INITIAL NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "San Aurie Ultimate v2",
-    Text = "All features loaded! Bypass system active.",
+    Title = "San Aurie Ultimate v3",
+    Text = "All features loaded! Click ⚡ to open menu.",
     Duration = 4
 })
