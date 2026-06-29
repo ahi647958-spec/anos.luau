@@ -1,5 +1,6 @@
--- [[ m1v San Aurie Robbery System v2 ]] --
--- Added Square Menu Button (Mini Button) that opens full menu
+-- [[ m1v San Aurie Heist System v4 FINAL ]] --
+-- Each heist has its own puzzle solver
+-- No lag, optimized
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,41 +9,46 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- ================================
--- CONFIG
+-- CONFIG (Each Heist = Its Own Puzzle)
 -- ================================
 local Config = {
-    -- Robbery Settings
-    autoRobbery = false,
-    autoLockpick = false,
-    autoThermite = false,
-    autoCables = false,
-    autoMatrix = false,
-    autoKeypad = false,
+    -- Heists with their specific puzzles
+    autoATM = false,           -- Timing Puzzle
+    autoCarTheft = false,      -- Lockpick + Timing
+    autoSmallBank = false,     -- Wiring + Thermite + Drill + Memory
+    autoGrandBank = false,     -- Laptop + Thermite Grid + Safe
+    autoCasino = false,        -- Movement + Number Matching
+    autoYacht = false,         -- Cutting + Safe + Wiring
+    
+    -- Collect & Safety
     autoCollectLoot = false,
-    
-    -- Safety
     autoEscape = false,
-    autoHide = false,
-    
-    -- GUI
-    showUI = true
+    autoHide = false
 }
 
 -- ================================
--- ROBBERY SYSTEM
+-- PUZZLE SOLVERS (Each Puzzle Type)
 -- ================================
 
--- 1. Lockpick Puzzle
-local function AutoLockpick()
+-- 1. TIMING PUZZLE (ATM, Lockpick)
+local function SolveTimingPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "lock") or string.find(string.lower(v.Name), "pick")) then
-                local buttons = v:GetDescendants()
-                for _, btn in ipairs(buttons) do
-                    if btn:IsA("TextButton") and (string.find(string.lower(btn.Text), "pick") or string.find(string.lower(btn.Text), "unlock")) then
-                        btn:Click()
-                        task.wait(0.1)
-                        return
+            if v:IsA("Frame") or v:IsA("ImageLabel") then
+                if string.find(string.lower(v.Name), "timing") or 
+                   string.find(string.lower(v.Name), "circle") or
+                   string.find(string.lower(v.Name), "bar") or
+                   string.find(string.lower(v.Name), "sweet") then
+                    
+                    for _, child in ipairs(v:GetDescendants()) do
+                        if child:IsA("TextButton") or child:IsA("ImageButton") then
+                            if string.find(string.lower(child.Name), "green") or 
+                               string.find(string.lower(child.Name), "hit") or
+                               string.find(string.lower(child.Name), "click") then
+                                child:Click()
+                                task.wait(0.05)
+                            end
+                        end
                     end
                 end
             end
@@ -50,21 +56,79 @@ local function AutoLockpick()
     end)
 end
 
--- 2. Thermite Puzzle
-local function AutoThermite()
+-- 2. LOCKPICK PUZZLE (Car Theft, Small Bank)
+local function SolveLockpickPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "thermite") or string.find(string.lower(v.Name), "grid")) then
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "lockpick") or 
+               string.find(string.lower(v.Name), "lock") or
+               string.find(string.lower(v.Name), "pick") or
+               string.find(string.lower(v.Name), "unlock")) then
+                
+                for _, btn in ipairs(v:GetDescendants()) do
+                    if btn:IsA("TextButton") then
+                        if string.find(string.lower(btn.Text), "pick") or 
+                           string.find(string.lower(btn.Text), "unlock") or
+                           string.find(string.lower(btn.Text), "turn") or
+                           string.find(string.lower(btn.Text), "click") then
+                            btn:Click()
+                            task.wait(0.05)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 3. WIRING PUZZLE (Small Bank, Yacht)
+local function SolveWiringPuzzle()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "wiring") or 
+               string.find(string.lower(v.Name), "wire") or
+               string.find(string.lower(v.Name), "cable") or
+               string.find(string.lower(v.Name), "fuse") or
+               string.find(string.lower(v.Name), "connect")) then
+                
+                local wires = {}
+                for _, child in ipairs(v:GetDescendants()) do
+                    if child:IsA("TextButton") and child.Visible then
+                        table.insert(wires, child)
+                    end
+                end
+                
+                for _, wire in ipairs(wires) do
+                    if wire:IsA("TextButton") and wire.Visible then
+                        wire:Click()
+                        task.wait(0.04)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 4. THERMITE PUZZLE (Small Bank, Grand Bank)
+local function SolveThermitePuzzle()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "thermite") or 
+               string.find(string.lower(v.Name), "grid") or
+               string.find(string.lower(v.Name), "melt") or
+               string.find(string.lower(v.Name), "burn")) then
+                
                 local tiles = {}
                 for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.BackgroundColor3 ~= Color3.fromRGB(0, 0, 0) then
+                    if child:IsA("TextButton") and child.Visible then
                         table.insert(tiles, child)
                     end
                 end
+                
                 for _, tile in ipairs(tiles) do
                     if tile:IsA("TextButton") and tile.Visible then
                         tile:Click()
-                        task.wait(0.05)
+                        task.wait(0.03)
                     end
                 end
             end
@@ -72,21 +136,25 @@ local function AutoThermite()
     end)
 end
 
--- 3. Cables Puzzle
-local function AutoCables()
+-- 5. DRILL PUZZLE (Small Bank, Grand Bank)
+local function SolveDrillPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "cable") or string.find(string.lower(v.Name), "fuse") or string.find(string.lower(v.Name), "bypass")) then
-                local cables = {}
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "drill") or 
+               string.find(string.lower(v.Name), "overheat") or
+               string.find(string.lower(v.Name), "temperature") or
+               string.find(string.lower(v.Name), "bore")) then
+                
                 for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and (string.find(string.lower(child.Text), "connect") or string.find(string.lower(child.Text), "wire")) then
-                        table.insert(cables, child)
-                    end
-                end
-                for _, cable in ipairs(cables) do
-                    if cable:IsA("TextButton") and cable.Visible then
-                        cable:Click()
-                        task.wait(0.08)
+                    if child:IsA("TextButton") then
+                        if string.find(string.lower(child.Text), "drill") or 
+                           string.find(string.lower(child.Text), "start") or
+                           string.find(string.lower(child.Text), "bore") then
+                            child:Click()
+                            task.wait(0.1)
+                            task.wait(0.3)
+                            child:Click()
+                        end
                     end
                 end
             end
@@ -94,42 +162,28 @@ local function AutoCables()
     end)
 end
 
--- 4. Matrix Puzzle
-local function AutoMatrix()
+-- 6. LAPTOP HACK PUZZLE (Grand Bank)
+local function SolveLaptopHackPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "matrix") or string.find(string.lower(v.Name), "hack") or string.find(string.lower(v.Name), "laptop")) then
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "laptop") or 
+               string.find(string.lower(v.Name), "hacking") or
+               string.find(string.lower(v.Name), "code") or
+               string.find(string.lower(v.Name), "ip") or
+               string.find(string.lower(v.Name), "matrix")) then
+                
                 local numbers = {}
                 for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.Text and tonumber(child.Text) then
-                        table.insert(numbers, child)
+                    if child:IsA("TextButton") and child.Text then
+                        if tonumber(child.Text) or string.match(child.Text, "^[A-F0-9]+$") then
+                            table.insert(numbers, child)
+                        end
                     end
                 end
+                
                 for _, num in ipairs(numbers) do
                     if num:IsA("TextButton") and num.Visible then
                         num:Click()
-                        task.wait(0.06)
-                    end
-                end
-            end
-        end
-    end)
-end
-
--- 5. Keypad Puzzle
-local function AutoKeypad()
-    pcall(function()
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("Frame") and (string.find(string.lower(v.Name), "keypad") or string.find(string.lower(v.Name), "password") or string.find(string.lower(v.Name), "code")) then
-                local keys = {}
-                for _, child in ipairs(v:GetDescendants()) do
-                    if child:IsA("TextButton") and child.Text and tonumber(child.Text) then
-                        table.insert(keys, child)
-                    end
-                end
-                for _, key in ipairs(keys) do
-                    if key:IsA("TextButton") and key.Visible then
-                        key:Click()
                         task.wait(0.02)
                     end
                 end
@@ -138,14 +192,148 @@ local function AutoKeypad()
     end)
 end
 
--- 6. Collect Loot
-local function AutoCollectLoot()
+-- 7. MEMORY GAME PUZZLE (Small Bank, Casino)
+local function SolveMemoryGamePuzzle()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "memory") or 
+               string.find(string.lower(v.Name), "sequence") or
+               string.find(string.lower(v.Name), "pattern") or
+               string.find(string.lower(v.Name), "repeat")) then
+                
+                local litButtons = {}
+                for _, child in ipairs(v:GetDescendants()) do
+                    if child:IsA("TextButton") and child.Visible then
+                        if child.BackgroundColor3 ~= Color3.fromRGB(30, 30, 35) then
+                            table.insert(litButtons, child)
+                        end
+                    end
+                end
+                
+                for _, btn in ipairs(litButtons) do
+                    if btn:IsA("TextButton") and btn.Visible then
+                        btn:Click()
+                        task.wait(0.05)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 8. NUMBER MATCHING PUZZLE (Casino)
+local function SolveNumberMatchingPuzzle()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "match") or 
+               string.find(string.lower(v.Name), "numbers") or
+               string.find(string.lower(v.Name), "matching") or
+               string.find(string.lower(v.Name), "pair")) then
+                
+                local numbers = {}
+                for _, child in ipairs(v:GetDescendants()) do
+                    if child:IsA("TextButton") and child.Text then
+                        if tonumber(child.Text) or string.match(child.Text, "^[A-F0-9]+$") then
+                            table.insert(numbers, child)
+                        end
+                    end
+                end
+                
+                for _, num in ipairs(numbers) do
+                    if num:IsA("TextButton") and num.Visible then
+                        num:Click()
+                        task.wait(0.02)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 9. CUTTING PUZZLE (Yacht)
+local function SolveCuttingPuzzle()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "cut") or 
+               string.find(string.lower(v.Name), "slice") or
+               string.find(string.lower(v.Name), "snip") or
+               string.find(string.lower(v.Name), "wire")) then
+                
+                for _, child in ipairs(v:GetDescendants()) do
+                    if child:IsA("TextButton") then
+                        if string.find(string.lower(child.Text), "cut") or 
+                           string.find(string.lower(child.Text), "slice") or
+                           string.find(string.lower(child.Text), "snip") then
+                            child:Click()
+                            task.wait(0.05)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 10. SAFE CRACKING PUZZLE (Yacht, Grand Bank)
+local function SolveSafeCrackingPuzzle()
+    pcall(function()
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("Frame") and (string.find(string.lower(v.Name), "safe") or 
+               string.find(string.lower(v.Name), "crack") or
+               string.find(string.lower(v.Name), "vault") or
+               string.find(string.lower(v.Name), "dial") or
+               string.find(string.lower(v.Name), "combination")) then
+                
+                for _, child in ipairs(v:GetDescendants()) do
+                    if child:IsA("TextButton") then
+                        if string.find(string.lower(child.Text), "left") or 
+                           string.find(string.lower(child.Text), "right") or
+                           string.find(string.lower(child.Text), "turn") or
+                           string.find(string.lower(child.Text), "dial") then
+                            child:Click()
+                            task.wait(0.05)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 11. MOVEMENT PUZZLE (Casino - Lasers)
+local function SolveMovementPuzzle()
+    pcall(function()
+        if LocalPlayer and LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                for _, v in ipairs(game:GetDescendants()) do
+                    if v:IsA("Part") and (string.find(string.lower(v.Name), "path") or 
+                       string.find(string.lower(v.Name), "waypoint") or
+                       string.find(string.lower(v.Name), "objective") or
+                       string.find(string.lower(v.Name), "point")) then
+                        humanoid:MoveTo(v.Position)
+                        task.wait(0.15)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- 12. Collect Loot (All Heists)
+local function CollectLoot()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("Tool") or v:IsA("Part") then
-                if string.find(string.lower(v.Name), "cash") or string.find(string.lower(v.Name), "money") or 
-                   string.find(string.lower(v.Name), "gold") or string.find(string.lower(v.Name), "diamond") or
-                   string.find(string.lower(v.Name), "loot") or string.find(string.lower(v.Name), "valuable") then
+                if string.find(string.lower(v.Name), "cash") or 
+                   string.find(string.lower(v.Name), "money") or
+                   string.find(string.lower(v.Name), "gold") or
+                   string.find(string.lower(v.Name), "diamond") or
+                   string.find(string.lower(v.Name), "loot") or
+                   string.find(string.lower(v.Name), "valuable") or
+                   string.find(string.lower(v.Name), "jewelry") or
+                   string.find(string.lower(v.Name), "painting") then
+                    
                     if v:IsA("Tool") then
                         task.wait(0.1)
                         LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):EquipTool(v)
@@ -153,37 +341,42 @@ local function AutoCollectLoot()
                         local click = v:FindFirstChildOfClass("ClickDetector")
                         if click then
                             click:Click()
-                            task.wait(0.05)
+                            task.wait(0.03)
                         end
                     end
                 end
             end
         end
+        
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("TextButton") and (string.find(string.lower(v.Text), "collect") or 
-               string.find(string.lower(v.Text), "loot") or
-               string.find(string.lower(v.Text), "take") or
-               string.find(string.lower(v.Text), "grab") or
-               string.find(string.lower(v.Text), "steal")) then
-                v:Click()
-                task.wait(0.05)
+            if v:IsA("TextButton") then
+                if string.find(string.lower(v.Text), "collect") or 
+                   string.find(string.lower(v.Text), "loot") or
+                   string.find(string.lower(v.Text), "take") or
+                   string.find(string.lower(v.Text), "grab") or
+                   string.find(string.lower(v.Text), "steal") or
+                   string.find(string.lower(v.Text), "pick up") then
+                    v:Click()
+                    task.wait(0.03)
+                end
             end
         end
     end)
 end
 
--- 7. Auto Escape
+-- 13. Auto Escape
 local function AutoEscape()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("Part") and (string.find(string.lower(v.Name), "door") or 
                string.find(string.lower(v.Name), "exit") or
                string.find(string.lower(v.Name), "escape") or
-               string.find(string.lower(v.Name), "vent")) then
+               string.find(string.lower(v.Name), "vent") or
+               string.find(string.lower(v.Name), "out")) then
                 local click = v:FindFirstChildOfClass("ClickDetector")
                 if click then
                     click:Click()
-                    task.wait(0.05)
+                    task.wait(0.03)
                 end
             end
         end
@@ -191,56 +384,103 @@ local function AutoEscape()
             if v:IsA("TextButton") and (string.find(string.lower(v.Text), "escape") or 
                string.find(string.lower(v.Text), "exit") or
                string.find(string.lower(v.Text), "leave") or
-               string.find(string.lower(v.Text), "flee")) then
+               string.find(string.lower(v.Text), "flee") or
+               string.find(string.lower(v.Text), "run")) then
                 v:Click()
-                task.wait(0.05)
+                task.wait(0.03)
             end
         end
     end)
 end
 
--- 8. Auto Hide
+-- 14. Auto Hide
 local function AutoHide()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("Part") and (string.find(string.lower(v.Name), "hiding") or 
                string.find(string.lower(v.Name), "hide") or
                string.find(string.lower(v.Name), "cover") or
-               string.find(string.lower(v.Name), "closet")) then
+               string.find(string.lower(v.Name), "closet") or
+               string.find(string.lower(v.Name), "shadow")) then
                 local click = v:FindFirstChildOfClass("ClickDetector")
                 if click then
                     click:Click()
-                    task.wait(0.05)
+                    task.wait(0.03)
                 end
             end
         end
         for _, v in ipairs(game:GetDescendants()) do
             if v:IsA("TextButton") and (string.find(string.lower(v.Text), "hide") or 
                string.find(string.lower(v.Text), "cover") or
-               string.find(string.lower(v.Text), "sneak")) then
+               string.find(string.lower(v.Text), "sneak") or
+               string.find(string.lower(v.Text), "crouch")) then
                 v:Click()
-                task.wait(0.05)
+                task.wait(0.03)
             end
         end
     end)
 end
 
 -- ================================
--- GUI
+-- HEIST FUNCTIONS (Each Heist = Its Specific Puzzles)
+-- ================================
+
+local function DoATM()
+    SolveTimingPuzzle()  -- ATM uses Timing Puzzle
+    CollectLoot()
+end
+
+local function DoCarTheft()
+    SolveLockpickPuzzle()   -- Car Theft uses Lockpick
+    SolveTimingPuzzle()     -- + Timing for hotwire
+    CollectLoot()
+end
+
+local function DoSmallBank()
+    SolveLockpickPuzzle()    -- Door
+    SolveWiringPuzzle()      -- Wiring
+    SolveThermitePuzzle()    -- Thermite
+    SolveDrillPuzzle()       -- Drill
+    SolveMemoryGamePuzzle()  -- Memory
+    CollectLoot()
+end
+
+local function DoGrandBank()
+    SolveLaptopHackPuzzle()      -- Laptop Hack
+    SolveThermitePuzzle()        -- Thermite Grid
+    SolveSafeCrackingPuzzle()    -- Safe Cracking
+    SolveDrillPuzzle()           -- Drill
+    CollectLoot()
+end
+
+local function DoCasino()
+    SolveMovementPuzzle()        -- Lasers Movement
+    SolveNumberMatchingPuzzle()  -- Number Matching
+    SolveMemoryGamePuzzle()      -- Memory
+    CollectLoot()
+end
+
+local function DoYacht()
+    SolveCuttingPuzzle()         -- Cutting
+    SolveSafeCrackingPuzzle()    -- Safe Cracking
+    SolveWiringPuzzle()          -- Wiring
+    CollectLoot()
+end
+
+-- ================================
+-- GUI SYSTEM
 -- ================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.Name = "m1vRobbery"
+ScreenGui.Name = "m1vHeist"
 
--- ================================
--- SQUARE MENU BUTTON (3lama mrb3a)
--- ================================
+-- Square Button
 local MiniButton = Instance.new("TextButton")
 MiniButton.Name = "MiniButton"
 MiniButton.Size = UDim2.new(0, 55, 0, 55)
 MiniButton.Position = UDim2.new(0, 15, 0, 15)
 MiniButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-MiniButton.Text = "💰"
+MiniButton.Text = "🏦"
 MiniButton.TextColor3 = Color3.fromRGB(255, 200, 0)
 MiniButton.TextSize = 26
 MiniButton.Font = Enum.Font.SourceSansBold
@@ -257,19 +497,7 @@ MiniStroke.Color = Color3.fromRGB(255, 200, 0)
 MiniStroke.Thickness = 2
 MiniStroke.Parent = MiniButton
 
--- Add shine effect to button
-local Shine = Instance.new("Frame")
-Shine.Size = UDim2.new(0.3, 0, 1, 0)
-Shine.Position = UDim2.new(0, 0, 0, 0)
-Shine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Shine.BackgroundTransparency = 0.7
-Shine.Parent = MiniButton
-
-local ShineCorner = Instance.new("UICorner")
-ShineCorner.CornerRadius = UDim.new(0, 8)
-ShineCorner.Parent = Shine
-
--- Glow effect
+-- Glow
 local Glow = Instance.new("Frame")
 Glow.Size = UDim2.new(1.2, 0, 1.2, 0)
 Glow.Position = UDim2.new(-0.1, 0, -0.1, 0)
@@ -279,29 +507,13 @@ Glow.Parent = MiniButton
 local GlowStroke = Instance.new("UIStroke")
 GlowStroke.Color = Color3.fromRGB(255, 200, 0)
 GlowStroke.Thickness = 3
-GlowStroke.Transparency = 0.7
+GlowStroke.Transparency = 0.5
 GlowStroke.Parent = Glow
 
--- Pulse animation for glow
-task.spawn(function()
-    while true do
-        for i = 1, 100 do
-            GlowStroke.Transparency = 0.3 + (i / 100) * 0.5
-            task.wait(0.02)
-        end
-        for i = 1, 100 do
-            GlowStroke.Transparency = 0.8 - (i / 100) * 0.5
-            task.wait(0.02)
-        end
-    end
-end)
-
--- ================================
--- MAIN FRAME (9aima l-kbira)
--- ================================
+-- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 400, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -260)
+MainFrame.Size = UDim2.new(0, 420, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -260)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.Active = true
@@ -316,32 +528,32 @@ MainCorner.Parent = MainFrame
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(255, 200, 0)
 MainStroke.Thickness = 1.5
-MainStroke.Transparency = 0.5
+MainStroke.Transparency = 0.4
 MainStroke.Parent = MainFrame
 
--- Title Bar
-local Title = Instance.new("Frame")
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Title.Parent = MainFrame
+-- Title
+local TitleFrame = Instance.new("Frame")
+TitleFrame.Size = UDim2.new(1, 0, 0, 45)
+TitleFrame.Position = UDim2.new(0, 0, 0, 0)
+TitleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+TitleFrame.Parent = MainFrame
 
 local TitleCorner = Instance.new("UICorner")
 TitleCorner.CornerRadius = UDim.new(0, 12)
-TitleCorner.Parent = Title
+TitleCorner.Parent = TitleFrame
 
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "💰 m1v Robbery System"
+TitleLabel.Text = "🏦 m1v Heist System v4"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
 TitleLabel.TextSize = 16
 TitleLabel.Font = Enum.Font.SourceSansBold
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-TitleLabel.Parent = Title
+TitleLabel.Parent = TitleFrame
 
--- Close Button (X)
+-- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -38, 0, 8)
@@ -350,7 +562,7 @@ CloseBtn.Text = "✕"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 CloseBtn.TextSize = 14
 CloseBtn.Font = Enum.Font.SourceSansBold
-CloseBtn.Parent = Title
+CloseBtn.Parent = TitleFrame
 
 local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 6)
@@ -360,22 +572,17 @@ CloseBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
--- ================================
--- OPEN MENU WITH SQUARE BUTTON
--- ================================
 MiniButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- ================================
--- CONTAINER (Scrolling Frame)
--- ================================
+-- Container
 local Container = Instance.new("ScrollingFrame")
 Container.Size = UDim2.new(1, -20, 1, -60)
 Container.Position = UDim2.new(0, 10, 0, 55)
 Container.BackgroundTransparency = 1
 Container.ScrollBarThickness = 2
-Container.CanvasSize = UDim2.new(0, 0, 0, 550)
+Container.CanvasSize = UDim2.new(0, 0, 0, 650)
 Container.Parent = MainFrame
 
 local layout = Instance.new("UIListLayout")
@@ -385,9 +592,9 @@ layout.Parent = Container
 -- ================================
 -- UI FUNCTIONS
 -- ================================
-local function CreateToggle(text, parent, configKey)
+local function CreateToggle(text, parent, configKey, desc)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 35)
+    frame.Size = UDim2.new(1, 0, 0, 38)
     frame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     frame.Parent = parent
     
@@ -396,15 +603,28 @@ local function CreateToggle(text, parent, configKey)
     corner.Parent = frame
     
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 250, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Size = UDim2.new(0, 250, 0, 18)
+    label.Position = UDim2.new(0, 10, 0, 2)
+    label.BackgroundTransparency = 1
     label.Text = text
     label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    label.TextSize = 12
+    label.TextSize = 11
     label.Font = Enum.Font.SourceSans
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.BackgroundTransparency = 1
     label.Parent = frame
+    
+    if desc then
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Size = UDim2.new(0, 250, 0, 14)
+        descLabel.Position = UDim2.new(0, 10, 0, 20)
+        descLabel.BackgroundTransparency = 1
+        descLabel.Text = "🔹 " .. desc
+        descLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        descLabel.TextSize = 9
+        descLabel.Font = Enum.Font.SourceSans
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.Parent = frame
+    end
     
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 50, 0, 22)
@@ -467,72 +687,54 @@ end
 -- BUILD UI
 -- ================================
 
--- Robbery Section
-CreateSection("🏪 Robbery Settings", Container)
-CreateToggle("Auto Robbery (All Types)", Container, "autoRobbery")
-CreateToggle("Auto Collect Loot", Container, "autoCollectLoot")
+CreateSection("🏦 Heists (Each with its own puzzles)", Container)
 
--- Puzzles Section
-CreateSection("🔐 Puzzle Automation", Container)
-CreateToggle("Auto Lockpick (Doors)", Container, "autoLockpick")
-CreateToggle("Auto Thermite (Grid)", Container, "autoThermite")
-CreateToggle("Auto Cables (Bypass)", Container, "autoCables")
-CreateToggle("Auto Matrix (IP Hack)", Container, "autoMatrix")
-CreateToggle("Auto Keypad (Bruteforce)", Container, "autoKeypad")
+CreateToggle("💰 ATM", Container, "autoATM", "Timing Puzzle")
+CreateToggle("🚗 Car Theft", Container, "autoCarTheft", "Lockpick + Timing")
+CreateToggle("🏛️ Small Bank", Container, "autoSmallBank", "Wiring + Thermite + Drill + Memory")
+CreateToggle("🏦 Grand Bank", Container, "autoGrandBank", "Laptop + Thermite Grid + Safe")
+CreateToggle("🎰 Casino", Container, "autoCasino", "Movement + Number Matching")
+CreateToggle("🛥️ Yacht", Container, "autoYacht", "Cutting + Safe + Wiring")
 
--- Safety Section
-CreateSection("🛡️ Safety & Escape", Container)
-CreateToggle("Auto Escape (Find Exit)", Container, "autoEscape")
-CreateToggle("Auto Hide (Cover)", Container, "autoHide")
+CreateSection("💰 Collect & Safety", Container)
+CreateToggle("Auto Collect Loot", Container, "autoCollectLoot", nil)
+CreateToggle("Auto Escape", Container, "autoEscape", nil)
+CreateToggle("Auto Hide", Container, "autoHide", nil)
 
--- Manual Buttons
-CreateSection("⚡ Manual Actions", Container)
-CreateButton("🔓 Force Lockpick Now", Container, function()
-    AutoLockpick()
+CreateSection("⚡ Force Actions", Container)
+CreateButton("🔓 Force All Heist Puzzles", Container, function()
+    SolveTimingPuzzle()
+    SolveLockpickPuzzle()
+    SolveWiringPuzzle()
+    SolveThermitePuzzle()
+    SolveDrillPuzzle()
+    SolveLaptopHackPuzzle()
+    SolveMemoryGamePuzzle()
+    SolveNumberMatchingPuzzle()
+    SolveCuttingPuzzle()
+    SolveSafeCrackingPuzzle()
+    SolveMovementPuzzle()
+    CollectLoot()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Robbery",
-        Text = "Lockpick attempted!",
+        Title = "m1v Heist",
+        Text = "All 11 puzzle types attempted!",
         Duration = 2
     })
 end)
 
-CreateButton("🔥 Force Thermite Now", Container, function()
-    AutoThermite()
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Robbery",
-        Text = "Thermite attempted!",
-        Duration = 2
-    })
-end)
-
-CreateButton("⚡ Force All Puzzles Now", Container, function()
-    AutoLockpick()
-    AutoThermite()
-    AutoCables()
-    AutoMatrix()
-    AutoKeypad()
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Robbery",
-        Text = "All puzzles attempted!",
-        Duration = 2
-    })
-end)
-
-CreateButton("🏃 Force Escape Now", Container, function()
+CreateButton("🏃 Force Escape", Container, function()
     AutoEscape()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Robbery",
+        Title = "m1v Heist",
         Text = "Escape attempted!",
         Duration = 2
     })
 end)
 
--- ================================
--- STATUS INDICATOR
--- ================================
+-- Status
 local StatusFrame = Instance.new("Frame")
 StatusFrame.Size = UDim2.new(1, -20, 0, 28)
-StatusFrame.Position = UDim2.new(0, 10, 0, 450)
+StatusFrame.Position = UDim2.new(0, 10, 0, 0)
 StatusFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 StatusFrame.Parent = Container
 
@@ -553,35 +755,33 @@ StatusLabel.Parent = StatusFrame
 -- ================================
 -- MAIN LOOP
 -- ================================
+local lastRun = tick()
+
 RunService.RenderStepped:Connect(function()
-    if Config.autoRobbery or Config.autoLockpick or Config.autoThermite or 
-       Config.autoCables or Config.autoMatrix or Config.autoKeypad or
-       Config.autoCollectLoot or Config.autoEscape or Config.autoHide then
-        
+    local now = tick()
+    if now - lastRun < 0.3 then return end
+    lastRun = now
+    
+    local anyHeist = Config.autoATM or Config.autoCarTheft or Config.autoSmallBank or 
+                     Config.autoGrandBank or Config.autoCasino or Config.autoYacht
+    
+    if anyHeist or Config.autoCollectLoot or Config.autoEscape or Config.autoHide then
         StatusLabel.Text = "🟡 Status: Running..."
         StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
         
-        if Config.autoRobbery then
-            pcall(function()
-                AutoLockpick()
-                AutoThermite()
-                AutoCables()
-                AutoMatrix()
-                AutoKeypad()
-                AutoCollectLoot()
-            end)
-        end
+        -- Each heist runs its own specific puzzles
+        if Config.autoATM then pcall(DoATM) end
+        if Config.autoCarTheft then pcall(DoCarTheft) end
+        if Config.autoSmallBank then pcall(DoSmallBank) end
+        if Config.autoGrandBank then pcall(DoGrandBank) end
+        if Config.autoCasino then pcall(DoCasino) end
+        if Config.autoYacht then pcall(DoYacht) end
         
-        if Config.autoLockpick then pcall(AutoLockpick) end
-        if Config.autoThermite then pcall(AutoThermite) end
-        if Config.autoCables then pcall(AutoCables) end
-        if Config.autoMatrix then pcall(AutoMatrix) end
-        if Config.autoKeypad then pcall(AutoKeypad) end
-        if Config.autoCollectLoot then pcall(AutoCollectLoot) end
+        -- Collect & Safety
+        if Config.autoCollectLoot then pcall(CollectLoot) end
         if Config.autoEscape then pcall(AutoEscape) end
         if Config.autoHide then pcall(AutoHide) end
         
-        task.wait(0.5)
     else
         StatusLabel.Text = "🟢 Status: Ready"
         StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
@@ -589,19 +789,19 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ================================
--- KEYBIND: Ctrl + R to toggle menu
+-- KEYBIND: Ctrl + H
 -- ================================
 UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.R and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+    if input.KeyCode == Enum.KeyCode.H and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
         MainFrame.Visible = not MainFrame.Visible
     end
 end)
 
 -- ================================
--- INITIAL NOTIFICATION
+-- NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "💰 m1v Robbery System v2",
-    Text = "Click 💰 square button to open menu | Ctrl+R to toggle",
-    Duration = 4
+    Title = "🏦 m1v Heist System v4",
+    Text = "6 heists | 11 puzzle types | Each heist = its own puzzle",
+    Duration = 5
 })
