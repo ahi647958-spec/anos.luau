@@ -1,6 +1,5 @@
--- [[ m1v San Aurie Heist System v4 FINAL ]] --
--- Each heist has its own puzzle solver
--- No lag, optimized
+-- [[ m1v San Aurie Heist System v7 FINAL ]] --
+-- Auto Bypass + No Delays + Anti-Cheat Removed
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,28 +8,97 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- ================================
--- CONFIG (Each Heist = Its Own Puzzle)
+-- AUTO BYPASS SYSTEM (Runs Automatically - NO DELAYS)
+-- ================================
+
+local function AutoBypass()
+    pcall(function()
+        -- Disable all anti-cheat scripts (NO DELAYS)
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
+                local name = string.lower(v.Name)
+                if string.find(name, "anticheat") or 
+                   string.find(name, "anticheat") or
+                   string.find(name, "ac_") or 
+                   string.find(name, "detection") or
+                   string.find(name, "cheat") or
+                   string.find(name, "bypass") or
+                   string.find(name, "guard") or
+                   string.find(name, "security") or
+                   string.find(name, "protect") then
+                    v.Disabled = true
+                    v:Destroy()
+                end
+            end
+        end
+        
+        -- Remove detection modules
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("ModuleScript") then
+                local name = string.lower(v.Name)
+                if string.find(name, "anticheat") or 
+                   string.find(name, "detect") or
+                   string.find(name, "cheat") then
+                    v:Destroy()
+                end
+            end
+        end
+        
+        -- Disable remote event logging
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                local name = string.lower(v.Name)
+                if string.find(name, "log") or 
+                   string.find(name, "report") or
+                   string.find(name, "detect") or
+                   string.find(name, "admin") then
+                    v:Destroy()
+                end
+            end
+        end
+        
+        -- Override fire server (NO DELAYS)
+        local replicatedStorage = game:GetService("ReplicatedStorage")
+        if replicatedStorage then
+            for _, v in ipairs(replicatedStorage:GetChildren()) do
+                if v:IsA("RemoteEvent") then
+                    local original = v.FireServer
+                    v.FireServer = function(...)
+                        return original(...)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- Run auto bypass immediately (NO DELAYS)
+AutoBypass()
+
+-- Keep bypass running (reapply if new anti-cheat appears)
+local bypassConnection = RunService.Heartbeat:Connect(function()
+    pcall(AutoBypass)
+end)
+
+-- ================================
+-- CONFIG
 -- ================================
 local Config = {
-    -- Heists with their specific puzzles
-    autoATM = false,           -- Timing Puzzle
-    autoCarTheft = false,      -- Lockpick + Timing
-    autoSmallBank = false,     -- Wiring + Thermite + Drill + Memory
-    autoGrandBank = false,     -- Laptop + Thermite Grid + Safe
-    autoCasino = false,        -- Movement + Number Matching
-    autoYacht = false,         -- Cutting + Safe + Wiring
-    
-    -- Collect & Safety
+    autoATM = false,
+    autoCarTheft = false,
+    autoSmallBank = false,
+    autoGrandBank = false,
+    autoCasino = false,
+    autoYacht = false,
     autoCollectLoot = false,
     autoEscape = false,
     autoHide = false
 }
 
 -- ================================
--- PUZZLE SOLVERS (Each Puzzle Type)
+-- PUZZLE SOLVERS (NO DELAYS)
 -- ================================
 
--- 1. TIMING PUZZLE (ATM, Lockpick)
 local function SolveTimingPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -46,7 +114,6 @@ local function SolveTimingPuzzle()
                                string.find(string.lower(child.Name), "hit") or
                                string.find(string.lower(child.Name), "click") then
                                 child:Click()
-                                task.wait(0.05)
                             end
                         end
                     end
@@ -56,7 +123,6 @@ local function SolveTimingPuzzle()
     end)
 end
 
--- 2. LOCKPICK PUZZLE (Car Theft, Small Bank)
 local function SolveLockpickPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -72,7 +138,6 @@ local function SolveLockpickPuzzle()
                            string.find(string.lower(btn.Text), "turn") or
                            string.find(string.lower(btn.Text), "click") then
                             btn:Click()
-                            task.wait(0.05)
                         end
                     end
                 end
@@ -81,7 +146,6 @@ local function SolveLockpickPuzzle()
     end)
 end
 
--- 3. WIRING PUZZLE (Small Bank, Yacht)
 local function SolveWiringPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -101,7 +165,6 @@ local function SolveWiringPuzzle()
                 for _, wire in ipairs(wires) do
                     if wire:IsA("TextButton") and wire.Visible then
                         wire:Click()
-                        task.wait(0.04)
                     end
                 end
             end
@@ -109,7 +172,6 @@ local function SolveWiringPuzzle()
     end)
 end
 
--- 4. THERMITE PUZZLE (Small Bank, Grand Bank)
 local function SolveThermitePuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -128,7 +190,6 @@ local function SolveThermitePuzzle()
                 for _, tile in ipairs(tiles) do
                     if tile:IsA("TextButton") and tile.Visible then
                         tile:Click()
-                        task.wait(0.03)
                     end
                 end
             end
@@ -136,7 +197,6 @@ local function SolveThermitePuzzle()
     end)
 end
 
--- 5. DRILL PUZZLE (Small Bank, Grand Bank)
 local function SolveDrillPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -151,8 +211,6 @@ local function SolveDrillPuzzle()
                            string.find(string.lower(child.Text), "start") or
                            string.find(string.lower(child.Text), "bore") then
                             child:Click()
-                            task.wait(0.1)
-                            task.wait(0.3)
                             child:Click()
                         end
                     end
@@ -162,7 +220,6 @@ local function SolveDrillPuzzle()
     end)
 end
 
--- 6. LAPTOP HACK PUZZLE (Grand Bank)
 local function SolveLaptopHackPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -184,7 +241,6 @@ local function SolveLaptopHackPuzzle()
                 for _, num in ipairs(numbers) do
                     if num:IsA("TextButton") and num.Visible then
                         num:Click()
-                        task.wait(0.02)
                     end
                 end
             end
@@ -192,7 +248,6 @@ local function SolveLaptopHackPuzzle()
     end)
 end
 
--- 7. MEMORY GAME PUZZLE (Small Bank, Casino)
 local function SolveMemoryGamePuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -213,7 +268,6 @@ local function SolveMemoryGamePuzzle()
                 for _, btn in ipairs(litButtons) do
                     if btn:IsA("TextButton") and btn.Visible then
                         btn:Click()
-                        task.wait(0.05)
                     end
                 end
             end
@@ -221,7 +275,6 @@ local function SolveMemoryGamePuzzle()
     end)
 end
 
--- 8. NUMBER MATCHING PUZZLE (Casino)
 local function SolveNumberMatchingPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -242,7 +295,6 @@ local function SolveNumberMatchingPuzzle()
                 for _, num in ipairs(numbers) do
                     if num:IsA("TextButton") and num.Visible then
                         num:Click()
-                        task.wait(0.02)
                     end
                 end
             end
@@ -250,7 +302,6 @@ local function SolveNumberMatchingPuzzle()
     end)
 end
 
--- 9. CUTTING PUZZLE (Yacht)
 local function SolveCuttingPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -265,7 +316,6 @@ local function SolveCuttingPuzzle()
                            string.find(string.lower(child.Text), "slice") or
                            string.find(string.lower(child.Text), "snip") then
                             child:Click()
-                            task.wait(0.05)
                         end
                     end
                 end
@@ -274,7 +324,6 @@ local function SolveCuttingPuzzle()
     end)
 end
 
--- 10. SAFE CRACKING PUZZLE (Yacht, Grand Bank)
 local function SolveSafeCrackingPuzzle()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -291,7 +340,6 @@ local function SolveSafeCrackingPuzzle()
                            string.find(string.lower(child.Text), "turn") or
                            string.find(string.lower(child.Text), "dial") then
                             child:Click()
-                            task.wait(0.05)
                         end
                     end
                 end
@@ -300,7 +348,6 @@ local function SolveSafeCrackingPuzzle()
     end)
 end
 
--- 11. MOVEMENT PUZZLE (Casino - Lasers)
 local function SolveMovementPuzzle()
     pcall(function()
         if LocalPlayer and LocalPlayer.Character then
@@ -312,7 +359,6 @@ local function SolveMovementPuzzle()
                        string.find(string.lower(v.Name), "objective") or
                        string.find(string.lower(v.Name), "point")) then
                         humanoid:MoveTo(v.Position)
-                        task.wait(0.15)
                     end
                 end
             end
@@ -320,7 +366,6 @@ local function SolveMovementPuzzle()
     end)
 end
 
--- 12. Collect Loot (All Heists)
 local function CollectLoot()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -335,13 +380,11 @@ local function CollectLoot()
                    string.find(string.lower(v.Name), "painting") then
                     
                     if v:IsA("Tool") then
-                        task.wait(0.1)
                         LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):EquipTool(v)
                     elseif v:IsA("Part") then
                         local click = v:FindFirstChildOfClass("ClickDetector")
                         if click then
                             click:Click()
-                            task.wait(0.03)
                         end
                     end
                 end
@@ -357,14 +400,12 @@ local function CollectLoot()
                    string.find(string.lower(v.Text), "steal") or
                    string.find(string.lower(v.Text), "pick up") then
                     v:Click()
-                    task.wait(0.03)
                 end
             end
         end
     end)
 end
 
--- 13. Auto Escape
 local function AutoEscape()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -376,7 +417,6 @@ local function AutoEscape()
                 local click = v:FindFirstChildOfClass("ClickDetector")
                 if click then
                     click:Click()
-                    task.wait(0.03)
                 end
             end
         end
@@ -387,13 +427,11 @@ local function AutoEscape()
                string.find(string.lower(v.Text), "flee") or
                string.find(string.lower(v.Text), "run")) then
                 v:Click()
-                task.wait(0.03)
             end
         end
     end)
 end
 
--- 14. Auto Hide
 local function AutoHide()
     pcall(function()
         for _, v in ipairs(game:GetDescendants()) do
@@ -405,7 +443,6 @@ local function AutoHide()
                 local click = v:FindFirstChildOfClass("ClickDetector")
                 if click then
                     click:Click()
-                    task.wait(0.03)
                 end
             end
         end
@@ -415,60 +452,59 @@ local function AutoHide()
                string.find(string.lower(v.Text), "sneak") or
                string.find(string.lower(v.Text), "crouch")) then
                 v:Click()
-                task.wait(0.03)
             end
         end
     end)
 end
 
 -- ================================
--- HEIST FUNCTIONS (Each Heist = Its Specific Puzzles)
+-- HEIST FUNCTIONS
 -- ================================
 
 local function DoATM()
-    SolveTimingPuzzle()  -- ATM uses Timing Puzzle
+    SolveTimingPuzzle()
     CollectLoot()
 end
 
 local function DoCarTheft()
-    SolveLockpickPuzzle()   -- Car Theft uses Lockpick
-    SolveTimingPuzzle()     -- + Timing for hotwire
+    SolveLockpickPuzzle()
+    SolveTimingPuzzle()
     CollectLoot()
 end
 
 local function DoSmallBank()
-    SolveLockpickPuzzle()    -- Door
-    SolveWiringPuzzle()      -- Wiring
-    SolveThermitePuzzle()    -- Thermite
-    SolveDrillPuzzle()       -- Drill
-    SolveMemoryGamePuzzle()  -- Memory
+    SolveLockpickPuzzle()
+    SolveWiringPuzzle()
+    SolveThermitePuzzle()
+    SolveDrillPuzzle()
+    SolveMemoryGamePuzzle()
     CollectLoot()
 end
 
 local function DoGrandBank()
-    SolveLaptopHackPuzzle()      -- Laptop Hack
-    SolveThermitePuzzle()        -- Thermite Grid
-    SolveSafeCrackingPuzzle()    -- Safe Cracking
-    SolveDrillPuzzle()           -- Drill
+    SolveLaptopHackPuzzle()
+    SolveThermitePuzzle()
+    SolveSafeCrackingPuzzle()
+    SolveDrillPuzzle()
     CollectLoot()
 end
 
 local function DoCasino()
-    SolveMovementPuzzle()        -- Lasers Movement
-    SolveNumberMatchingPuzzle()  -- Number Matching
-    SolveMemoryGamePuzzle()      -- Memory
+    SolveMovementPuzzle()
+    SolveNumberMatchingPuzzle()
+    SolveMemoryGamePuzzle()
     CollectLoot()
 end
 
 local function DoYacht()
-    SolveCuttingPuzzle()         -- Cutting
-    SolveSafeCrackingPuzzle()    -- Safe Cracking
-    SolveWiringPuzzle()          -- Wiring
+    SolveCuttingPuzzle()
+    SolveSafeCrackingPuzzle()
+    SolveWiringPuzzle()
     CollectLoot()
 end
 
 -- ================================
--- GUI SYSTEM
+-- GUI
 -- ================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
@@ -546,7 +582,7 @@ local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Size = UDim2.new(1, -50, 1, 0)
 TitleLabel.Position = UDim2.new(0, 15, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "🏦 m1v Heist System v4"
+TitleLabel.Text = "🏦 m1v Heist System v7"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
 TitleLabel.TextSize = 16
 TitleLabel.Font = Enum.Font.SourceSansBold
@@ -752,15 +788,24 @@ StatusLabel.Font = Enum.Font.SourceSans
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Center
 StatusLabel.Parent = StatusFrame
 
+-- Bypass Status
+local BypassStatus = Instance.new("TextLabel")
+BypassStatus.Size = UDim2.new(1, 0, 0, 18)
+BypassStatus.Position = UDim2.new(0, 0, 0, -20)
+BypassStatus.BackgroundTransparency = 1
+BypassStatus.Text = "🛡️ Bypass: Active (Auto)"
+BypassStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
+BypassStatus.TextSize = 10
+BypassStatus.Font = Enum.Font.SourceSans
+BypassStatus.TextXAlignment = Enum.TextXAlignment.Center
+BypassStatus.Parent = StatusFrame
+
 -- ================================
--- MAIN LOOP
+-- MAIN LOOP (NO DELAYS)
 -- ================================
-local lastRun = tick()
 
 RunService.RenderStepped:Connect(function()
-    local now = tick()
-    if now - lastRun < 0.3 then return end
-    lastRun = now
+    -- Bypass is already running automatically via Heartbeat
     
     local anyHeist = Config.autoATM or Config.autoCarTheft or Config.autoSmallBank or 
                      Config.autoGrandBank or Config.autoCasino or Config.autoYacht
@@ -769,7 +814,6 @@ RunService.RenderStepped:Connect(function()
         StatusLabel.Text = "🟡 Status: Running..."
         StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
         
-        -- Each heist runs its own specific puzzles
         if Config.autoATM then pcall(DoATM) end
         if Config.autoCarTheft then pcall(DoCarTheft) end
         if Config.autoSmallBank then pcall(DoSmallBank) end
@@ -777,7 +821,6 @@ RunService.RenderStepped:Connect(function()
         if Config.autoCasino then pcall(DoCasino) end
         if Config.autoYacht then pcall(DoYacht) end
         
-        -- Collect & Safety
         if Config.autoCollectLoot then pcall(CollectLoot) end
         if Config.autoEscape then pcall(AutoEscape) end
         if Config.autoHide then pcall(AutoHide) end
@@ -801,7 +844,7 @@ end)
 -- NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "🏦 m1v Heist System v4",
-    Text = "6 heists | 11 puzzle types | Each heist = its own puzzle",
+    Title = "🏦 m1v Heist System v7",
+    Text = "Auto Bypass | No Delays | 6 Heists | 11 Puzzles",
     Duration = 5
 })
