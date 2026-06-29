@@ -1,5 +1,5 @@
--- [[ San Aurie Ultimate Hack Script v3 ]] --
--- Added Mini Menu Button + Aimbot Key Selection
+-- [[ San Aurie Ultimate Hack Script v6 ]] --
+-- All Features: Aimbot + ESP + Auto Hack (No ATM)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -29,8 +29,8 @@ local Config = {
     -- Whitelist (Friendly)
     whitelisted = {},
     
-    -- Auto ATM (Robberies)
-    autoATM = false,
+    -- Auto Hack (GameRules)
+    autoHackEnabled = false,
     
     -- Vehicle Hack
     vehicleHack = false,
@@ -42,6 +42,28 @@ local Config = {
     bypassEnabled = true,
     stealthMode = true
 }
+
+-- ================================
+-- AUTO HACK SYSTEM (GameRules)
+-- ================================
+local GameRules
+pcall(function()
+    GameRules = require(game.ReplicatedStorage.Modules.GameRules)
+end)
+
+local function ForceDisableHacking()
+    if not GameRules then return end
+    pcall(function()
+        GameRules.disableHacking = true
+    end)
+end
+
+local function DisableHackingOff()
+    if not GameRules then return end
+    pcall(function()
+        GameRules.disableHacking = false
+    end)
+end
 
 -- ================================
 -- ANTI-BAN / BYPASS SYSTEM
@@ -170,13 +192,13 @@ local function StartBypass()
 end
 
 -- ================================
--- MINI MENU BUTTON (Square)
+-- GUI
 -- ================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.Name = "SanAurieHub"
 
--- Mini Button (Square)
+-- Mini Button
 local MiniButton = Instance.new("TextButton")
 MiniButton.Name = "MiniButton"
 MiniButton.Size = UDim2.new(0, 50, 0, 50)
@@ -199,12 +221,10 @@ MiniStroke.Color = Color3.fromRGB(0, 255, 150)
 MiniStroke.Thickness = 1.5
 MiniStroke.Parent = MiniButton
 
--- ================================
--- MAIN FRAME
--- ================================
+-- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 580)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -290)
+MainFrame.Size = UDim2.new(0, 450, 0, 600)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.Active = true
@@ -220,13 +240,12 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Title.Text = "San Aurie Ultimate v3"
+Title.Text = "San Aurie Ultimate v6"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
 Title.Parent = MainFrame
 
--- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -245,14 +264,11 @@ CloseBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
--- Toggle Main Frame with Mini Button
 MiniButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- ================================
--- TAB SYSTEM
--- ================================
+-- Tab System
 local TabBar = Instance.new("Frame")
 TabBar.Size = UDim2.new(0, 100, 1, -40)
 TabBar.Position = UDim2.new(0, 0, 0, 40)
@@ -350,6 +366,15 @@ local function CreateToggle(text, parent, configKey)
         local newState = Config[configKey]
         btn.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(150, 50, 50)
         btn.Text = newState and "ON" or "OFF"
+        
+        if configKey == "autoHackEnabled" then
+            if newState then
+                ForceDisableHacking()
+            else
+                DisableHackingOff()
+            end
+        end
+        
         if configKey == "bypassEnabled" and newState then
             StartBypass()
         end
@@ -476,9 +501,7 @@ partBtn.MouseButton1Click:Connect(function()
     partLabel.Text = "Aim Part: " .. Config.aimPart
 end)
 
--- ================================
--- AIM KEY SELECTOR (NEW)
--- ================================
+-- Aim Key Selector
 local keyFrame = Instance.new("Frame")
 keyFrame.Size = UDim2.new(1, -5, 0, 35)
 keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
@@ -618,9 +641,36 @@ Players.PlayerRemoving:Connect(UpdateWhitelist)
 UpdateWhitelist()
 
 -- ================================
--- HACK TAB
+-- HACK TAB (New - No ATM)
 -- ================================
-CreateToggle("Auto ATM (Collect Cash)", HackTab, "autoATM")
+CreateToggle("Enable Auto Hack (GameRules)", HackTab, "autoHackEnabled")
+
+CreateButton("Force Enable Hack Now", HackTab, function()
+    if Config.autoHackEnabled then
+        ForceDisableHacking()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Auto Hack",
+            Text = "Hack forced enabled!",
+            Duration = 2
+        })
+    else
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Auto Hack",
+            Text = "Enable Auto Hack first!",
+            Duration = 2
+        })
+    end
+end)
+
+CreateButton("Disable Hack Now", HackTab, function()
+    DisableHackingOff()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Auto Hack",
+        Text = "Hack disabled!",
+        Duration = 2
+    })
+end)
+
 CreateButton("Hack Vehicles (Unlock All)", HackTab, function()
     Config.vehicleHack = not Config.vehicleHack
     if Config.vehicleHack then
@@ -629,6 +679,11 @@ CreateButton("Hack Vehicles (Unlock All)", HackTab, function()
                 pcall(function() v:FireServer("Unlock") end)
             end
         end
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Vehicle Hack",
+            Text = "Vehicles unlocked!",
+            Duration = 2
+        })
     end
 end)
 
@@ -636,10 +691,15 @@ CreateButton("Hack Banks (Auto Cash)", HackTab, function()
     Config.bankHack = not Config.bankHack
     if Config.bankHack then
         for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "ATM") or string.find(v.Name, "Cash")) then
+            if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "Cash")) then
                 pcall(function() v:FireServer(true) end)
             end
         end
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Bank Hack",
+            Text = "Bank hack activated!",
+            Duration = 2
+        })
     end
 end)
 
@@ -772,6 +832,13 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.Size = UDim2.new(0, Config.FOVRadius * 2, 0, Config.FOVRadius * 2)
     FOVCircle.Visible = Config.aimbotEnabled
     
+    -- Auto Hack (GameRules) - Force enable every frame
+    if Config.autoHackEnabled and GameRules then
+        pcall(function()
+            GameRules.disableHacking = true
+        end)
+    end
+    
     -- ESP Update
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
@@ -845,7 +912,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- Aimbot (with selected key)
+    -- Aimbot
     if Config.aimbotEnabled and UserInputService:IsKeyDown(Config.aimKey) then
         local target = GetClosestPlayer()
         if target and target.Character then
@@ -855,19 +922,6 @@ RunService.RenderStepped:Connect(function()
                 Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, pos), 1 / Config.aimSmoothness)
             end
         end
-    end
-    
-    -- Auto ATM
-    if Config.autoATM then
-        pcall(function()
-            for _, v in ipairs(game:GetDescendants()) do
-                if v:IsA("RemoteEvent") then
-                    if string.find(v.Name, "Collect") or string.find(v.Name, "Cash") or string.find(v.Name, "Robbery") then
-                        v:FireServer()
-                    end
-                end
-            end
-        end)
     end
     
     -- Vehicle Hack
@@ -886,7 +940,7 @@ RunService.RenderStepped:Connect(function()
     if Config.bankHack then
         pcall(function()
             for _, v in ipairs(game:GetDescendants()) do
-                if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "ATM") or string.find(v.Name, "Cash")) then
+                if v:IsA("RemoteEvent") and (string.find(v.Name, "Bank") or string.find(v.Name, "Cash")) then
                     v:FireServer(true)
                     v:FireServer("Hack")
                 end
@@ -917,7 +971,7 @@ StartBypass()
 -- INITIAL NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "San Aurie Ultimate v3",
+    Title = "San Aurie Ultimate v6",
     Text = "All features loaded! Click ⚡ to open menu.",
     Duration = 4
 })
