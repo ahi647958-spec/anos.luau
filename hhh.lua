@@ -1,5 +1,5 @@
--- [[ San Aurie Ultimate Hack Script v7 ]] --
--- Fixed: No interference with Roblox UI, Movement, Mouse Scroll
+-- [[ San Aurie Ultimate Hack Script v7 CLEAN ]] --
+-- Removed: All protection, bypass, anti-cheat, detection, hiding systems
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -29,22 +29,18 @@ local Config = {
     -- Whitelist
     whitelisted = {},
     
-    -- Auto Hack
+    -- Auto Hack (GameRules)
     autoHackEnabled = false,
     
     -- Vehicle Hack
     vehicleHack = false,
     
     -- Bank Hack
-    bankHack = false,
-    
-    -- Anti-Ban
-    bypassEnabled = true,
-    stealthMode = false -- Disabled to prevent movement interference
+    bankHack = false
 }
 
 -- ================================
--- AUTO HACK SYSTEM
+-- AUTO HACK SYSTEM (GameRules)
 -- ================================
 local GameRules
 pcall(function()
@@ -63,50 +59,6 @@ local function DisableHackingOff()
     pcall(function()
         GameRules.disableHacking = false
     end)
-end
-
--- ================================
--- ANTI-BAN / BYPASS SYSTEM (LIGHT)
--- ================================
-local function BypassAntiCheat()
-    pcall(function()
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("LocalScript") and (string.find(v.Name, "AntiCheat") or string.find(v.Name, "AC") or string.find(v.Name, "Detection")) then
-                v.Disabled = true
-                task.wait(0.1)
-                v.Disabled = false
-            end
-        end
-    end)
-end
-
-local function HideScript()
-    pcall(function()
-        local function randomName()
-            local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-            local str = ""
-            for i = 1, math.random(12, 20) do
-                str = str .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
-            end
-            return str
-        end
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
-                if v.Name ~= "StarterLocalScript" then
-                    pcall(function()
-                        v.Name = randomName()
-                    end)
-                end
-            end
-        end
-    end)
-end
-
-local function StartBypass()
-    if Config.bypassEnabled then
-        pcall(BypassAntiCheat)
-        pcall(HideScript)
-    end
 end
 
 -- ================================
@@ -141,8 +93,8 @@ MiniStroke.Parent = MiniButton
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 580)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -290)
+MainFrame.Size = UDim2.new(0, 450, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -260)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.Active = true
@@ -158,7 +110,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Title.Text = "San Aurie Ultimate v7"
+Title.Text = "San Aurie Ultimate v7 CLEAN"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -317,7 +269,6 @@ local AimbotTab = CreateTab("Aimbot", 1)
 local ESPTab = CreateTab("ESP", 2)
 local WhitelistTab = CreateTab("Friendly", 3)
 local HackTab = CreateTab("Hacks", 4)
-local BypassTab = CreateTab("Bypass", 5)
 
 -- ================================
 -- AIMBOT TAB
@@ -618,44 +569,6 @@ CreateButton("Hack Banks (Auto Cash)", HackTab, function()
 end)
 
 -- ================================
--- BYPASS TAB
--- ================================
-CreateToggle("Enable Bypass System", BypassTab, "bypassEnabled")
-
-CreateButton("Run Anti-Cheat Bypass", BypassTab, function()
-    pcall(BypassAntiCheat)
-    pcall(HideScript)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Bypass",
-        Text = "Anti-cheat bypassed successfully!",
-        Duration = 2
-    })
-end)
-
-CreateButton("Randomize Script Names", BypassTab, function()
-    pcall(HideScript)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Bypass",
-        Text = "Script names randomized!",
-        Duration = 2
-    })
-end)
-
-CreateButton("Clear Console (Remove Traces)", BypassTab, function()
-    pcall(function()
-        local console = game:GetService("CoreGui"):FindFirstChild("RobloxGui"):FindFirstChild("Console")
-        if console then
-            console:Clear()
-        end
-    end)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Bypass",
-        Text = "Console cleared!",
-        Duration = 2
-    })
-end)
-
--- ================================
 -- FOV CIRCLE
 -- ================================
 local FOVCircle = Instance.new("Frame")
@@ -674,7 +587,7 @@ FOVCorner.CornerRadius = UDim.new(1, 0)
 FOVCorner.Parent = FOVCircle
 
 -- ================================
--- AIMBOT FUNCTION (FIXED - No Camera Interference)
+-- AIMBOT FUNCTION
 -- ================================
 local function GetClosestPlayer()
     local closest = nil
@@ -735,13 +648,10 @@ local function CreateESP(player)
 end
 
 -- ================================
--- MAIN LOOP (FIXED - No interference)
+-- MAIN LOOP
 -- ================================
-local aimbotActive = false
-local aimbotTarget = nil
-
 RunService.RenderStepped:Connect(function()
-    -- FOV Circle (No interference)
+    -- FOV Circle
     local mousePos = UserInputService:GetMouseLocation()
     FOVCircle.Position = UDim2.new(0, mousePos.X - Config.FOVRadius, 0, mousePos.Y - Config.FOVRadius)
     FOVCircle.Size = UDim2.new(0, Config.FOVRadius * 2, 0, Config.FOVRadius * 2)
@@ -827,14 +737,13 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- Aimbot (FIXED - Only activates when key is held)
+    -- Aimbot
     if Config.aimbotEnabled and UserInputService:IsKeyDown(Config.aimKey) then
         local target = GetClosestPlayer()
         if target and target.Character then
             local part = target.Character:FindFirstChild(Config.aimPart)
             if part then
                 local pos = part.Position
-                -- Only move camera when aiming, doesn't lock permanently
                 Camera.CFrame = CFrame.new(Camera.CFrame.Position, pos)
             end
         end
@@ -879,15 +788,10 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 -- ================================
--- START BYPASS
--- ================================
-StartBypass()
-
--- ================================
--- INITIAL NOTIFICATION
+-- NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "San Aurie Ultimate v7",
-    Text = "Fixed: No interference with movement or UI",
+    Title = "San Aurie Ultimate v7 CLEAN",
+    Text = "All protection systems removed. Clean version.",
     Duration = 4
 })
