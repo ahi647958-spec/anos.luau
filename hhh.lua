@@ -1,5 +1,5 @@
--- [[ San Aurie Ultimate Hack Script v6 ]] --
--- All Features: Aimbot + ESP + Auto Hack (No ATM)
+-- [[ San Aurie Ultimate Hack Script v7 ]] --
+-- Fixed: No interference with Roblox UI, Movement, Mouse Scroll
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -26,10 +26,10 @@ local Config = {
     showHitbox = false,
     espColor = Color3.fromRGB(0, 255, 150),
     
-    -- Whitelist (Friendly)
+    -- Whitelist
     whitelisted = {},
     
-    -- Auto Hack (GameRules)
+    -- Auto Hack
     autoHackEnabled = false,
     
     -- Vehicle Hack
@@ -38,13 +38,13 @@ local Config = {
     -- Bank Hack
     bankHack = false,
     
-    -- Anti-Ban / Bypass
+    -- Anti-Ban
     bypassEnabled = true,
-    stealthMode = true
+    stealthMode = false -- Disabled to prevent movement interference
 }
 
 -- ================================
--- AUTO HACK SYSTEM (GameRules)
+-- AUTO HACK SYSTEM
 -- ================================
 local GameRules
 pcall(function()
@@ -66,7 +66,7 @@ local function DisableHackingOff()
 end
 
 -- ================================
--- ANTI-BAN / BYPASS SYSTEM
+-- ANTI-BAN / BYPASS SYSTEM (LIGHT)
 -- ================================
 local function BypassAntiCheat()
     pcall(function()
@@ -75,42 +75,6 @@ local function BypassAntiCheat()
                 v.Disabled = true
                 task.wait(0.1)
                 v.Disabled = false
-            end
-        end
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("ModuleScript") and (string.find(v.Name, "AntiCheat") or string.find(v.Name, "AC")) then
-                v:Destroy()
-            end
-        end
-    end)
-end
-
-local function FakeClientData()
-    pcall(function()
-        local player = LocalPlayer
-        if player:FindFirstChild("Network") then
-            local network = player.Network
-            local ping = network:FindFirstChild("Ping")
-            if ping then
-                ping.Value = math.random(20, 80)
-            end
-        end
-        if game:GetService("Stats"):FindFirstChild("FPS") then
-            local fps = game:GetService("Stats").FPS
-            fps.Value = math.random(30, 120)
-        end
-    end)
-end
-
-local function RandomizeMovement()
-    pcall(function()
-        if LocalPlayer and LocalPlayer.Character then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                local currentSpeed = humanoid.WalkSpeed
-                humanoid.WalkSpeed = currentSpeed + math.random(-2, 2)
-                task.wait(0.5)
-                humanoid.WalkSpeed = currentSpeed
             end
         end
     end)
@@ -138,56 +102,10 @@ local function HideScript()
     end)
 end
 
-local function BypassRemoteEvents()
-    pcall(function()
-        local originalFireServer = game:GetService("ReplicatedStorage").RemoteEvent.FireServer
-        game:GetService("ReplicatedStorage").RemoteEvent.FireServer = function(...)
-            if Config.stealthMode then
-                task.wait(math.random(1, 5) / 100)
-            end
-            return originalFireServer(...)
-        end
-    end)
-end
-
-local function FakeLag()
-    pcall(function()
-        if Config.stealthMode and math.random(1, 20) == 1 then
-            if LocalPlayer and LocalPlayer.Character then
-                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.WalkSpeed = humanoid.WalkSpeed - math.random(1, 3)
-                    task.wait(0.1)
-                    humanoid.WalkSpeed = humanoid.WalkSpeed + math.random(1, 3)
-                end
-            end
-        end
-    end)
-end
-
-local function RandomizeFOV()
-    pcall(function()
-        if Config.stealthMode and math.random(1, 15) == 1 then
-            if Camera then
-                Camera.FieldOfView = math.random(70, 90)
-            end
-        end
-    end)
-end
-
 local function StartBypass()
     if Config.bypassEnabled then
         pcall(BypassAntiCheat)
-        pcall(BypassRemoteEvents)
         pcall(HideScript)
-        _G.BYPASS_CONN = RunService.Heartbeat:Connect(function()
-            if Config.bypassEnabled then
-                pcall(FakeClientData)
-                pcall(RandomizeMovement)
-                pcall(FakeLag)
-                pcall(RandomizeFOV)
-            end
-        end)
     end
 end
 
@@ -223,8 +141,8 @@ MiniStroke.Parent = MiniButton
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 600)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
+MainFrame.Size = UDim2.new(0, 450, 0, 580)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -290)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.Active = true
@@ -240,7 +158,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Title.Text = "San Aurie Ultimate v6"
+Title.Text = "San Aurie Ultimate v7"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -373,10 +291,6 @@ local function CreateToggle(text, parent, configKey)
             else
                 DisableHackingOff()
             end
-        end
-        
-        if configKey == "bypassEnabled" and newState then
-            StartBypass()
         end
     end)
 end
@@ -641,7 +555,7 @@ Players.PlayerRemoving:Connect(UpdateWhitelist)
 UpdateWhitelist()
 
 -- ================================
--- HACK TAB (New - No ATM)
+-- HACK TAB
 -- ================================
 CreateToggle("Enable Auto Hack (GameRules)", HackTab, "autoHackEnabled")
 
@@ -707,11 +621,9 @@ end)
 -- BYPASS TAB
 -- ================================
 CreateToggle("Enable Bypass System", BypassTab, "bypassEnabled")
-CreateToggle("Stealth Mode (Random Delays)", BypassTab, "stealthMode")
 
 CreateButton("Run Anti-Cheat Bypass", BypassTab, function()
     pcall(BypassAntiCheat)
-    pcall(BypassRemoteEvents)
     pcall(HideScript)
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Bypass",
@@ -762,7 +674,7 @@ FOVCorner.CornerRadius = UDim.new(1, 0)
 FOVCorner.Parent = FOVCircle
 
 -- ================================
--- AIMBOT FUNCTION
+-- AIMBOT FUNCTION (FIXED - No Camera Interference)
 -- ================================
 local function GetClosestPlayer()
     local closest = nil
@@ -823,16 +735,19 @@ local function CreateESP(player)
 end
 
 -- ================================
--- MAIN LOOP
+-- MAIN LOOP (FIXED - No interference)
 -- ================================
+local aimbotActive = false
+local aimbotTarget = nil
+
 RunService.RenderStepped:Connect(function()
-    -- FOV Circle
+    -- FOV Circle (No interference)
     local mousePos = UserInputService:GetMouseLocation()
     FOVCircle.Position = UDim2.new(0, mousePos.X - Config.FOVRadius, 0, mousePos.Y - Config.FOVRadius)
     FOVCircle.Size = UDim2.new(0, Config.FOVRadius * 2, 0, Config.FOVRadius * 2)
     FOVCircle.Visible = Config.aimbotEnabled
     
-    -- Auto Hack (GameRules) - Force enable every frame
+    -- Auto Hack
     if Config.autoHackEnabled and GameRules then
         pcall(function()
             GameRules.disableHacking = true
@@ -912,14 +827,15 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- Aimbot
+    -- Aimbot (FIXED - Only activates when key is held)
     if Config.aimbotEnabled and UserInputService:IsKeyDown(Config.aimKey) then
         local target = GetClosestPlayer()
         if target and target.Character then
             local part = target.Character:FindFirstChild(Config.aimPart)
             if part then
                 local pos = part.Position
-                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, pos), 1 / Config.aimSmoothness)
+                -- Only move camera when aiming, doesn't lock permanently
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, pos)
             end
         end
     end
@@ -971,7 +887,7 @@ StartBypass()
 -- INITIAL NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "San Aurie Ultimate v6",
-    Text = "All features loaded! Click ⚡ to open menu.",
+    Title = "San Aurie Ultimate v7",
+    Text = "Fixed: No interference with movement or UI",
     Duration = 4
 })
