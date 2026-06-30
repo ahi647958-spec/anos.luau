@@ -1,6 +1,5 @@
--- [[ m1v ULTIMATE HACK SCRIPT v8 ]] --
--- Fixed: No interference with Roblox UI, Movement, Mouse Scroll
--- All features: Aimbot + ESP + Auto Hack + Vehicle/Bank Hack + Bypass
+-- [[ San Aurie Ultimate Hack Script v7 CLEAN ]] --
+-- Removed: All protection, bypass, anti-cheat, detection, hiding systems
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -30,22 +29,18 @@ local Config = {
     -- Whitelist
     whitelisted = {},
     
-    -- Auto Hack
+    -- Auto Hack (GameRules)
     autoHackEnabled = false,
     
     -- Vehicle Hack
     vehicleHack = false,
     
     -- Bank Hack
-    bankHack = false,
-    
-    -- Anti-Ban
-    bypassEnabled = true,
-    stealthMode = false
+    bankHack = false
 }
 
 -- ================================
--- AUTO HACK SYSTEM
+-- AUTO HACK SYSTEM (GameRules)
 -- ================================
 local GameRules
 pcall(function()
@@ -67,55 +62,11 @@ local function DisableHackingOff()
 end
 
 -- ================================
--- ANTI-BAN / BYPASS SYSTEM
--- ================================
-local function BypassAntiCheat()
-    pcall(function()
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("LocalScript") and (string.find(string.lower(v.Name), "anticheat") or string.find(string.lower(v.Name), "ac") or string.find(string.lower(v.Name), "detection")) then
-                v.Disabled = true
-                task.wait(0.1)
-                v.Disabled = false
-            end
-        end
-    end)
-end
-
-local function HideScript()
-    pcall(function()
-        local function randomName()
-            local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-            local str = ""
-            for i = 1, math.random(12, 20) do
-                str = str .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
-            end
-            return str
-        end
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
-                if v.Name ~= "StarterLocalScript" then
-                    pcall(function()
-                        v.Name = randomName()
-                    end)
-                end
-            end
-        end
-    end)
-end
-
-local function StartBypass()
-    if Config.bypassEnabled then
-        pcall(BypassAntiCheat)
-        pcall(HideScript)
-    end
-end
-
--- ================================
 -- GUI
 -- ================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
-ScreenGui.Name = "m1v"
+ScreenGui.Name = "SanAurieHub"
 
 -- Mini Button
 local MiniButton = Instance.new("TextButton")
@@ -142,8 +93,8 @@ MiniStroke.Parent = MiniButton
 
 -- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 580)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -290)
+MainFrame.Size = UDim2.new(0, 450, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -260)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.BackgroundTransparency = 0.05
 MainFrame.Active = true
@@ -159,7 +110,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-Title.Text = "m1v Ultimate v8"
+Title.Text = "San Aurie Ultimate v7 CLEAN"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.TextSize = 16
 Title.Font = Enum.Font.SourceSansBold
@@ -318,7 +269,6 @@ local AimbotTab = CreateTab("Aimbot", 1)
 local ESPTab = CreateTab("ESP", 2)
 local WhitelistTab = CreateTab("Friendly", 3)
 local HackTab = CreateTab("Hacks", 4)
-local BypassTab = CreateTab("Bypass", 5)
 
 -- ================================
 -- AIMBOT TAB
@@ -564,13 +514,13 @@ CreateButton("Force Enable Hack Now", HackTab, function()
     if Config.autoHackEnabled then
         ForceDisableHacking()
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "m1v Auto Hack",
+            Title = "Auto Hack",
             Text = "Hack forced enabled!",
             Duration = 2
         })
     else
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "m1v Auto Hack",
+            Title = "Auto Hack",
             Text = "Enable Auto Hack first!",
             Duration = 2
         })
@@ -580,7 +530,7 @@ end)
 CreateButton("Disable Hack Now", HackTab, function()
     DisableHackingOff()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Auto Hack",
+        Title = "Auto Hack",
         Text = "Hack disabled!",
         Duration = 2
     })
@@ -595,7 +545,7 @@ CreateButton("Hack Vehicles (Unlock All)", HackTab, function()
             end
         end
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "m1v Vehicle Hack",
+            Title = "Vehicle Hack",
             Text = "Vehicles unlocked!",
             Duration = 2
         })
@@ -611,49 +561,11 @@ CreateButton("Hack Banks (Auto Cash)", HackTab, function()
             end
         end
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "m1v Bank Hack",
+            Title = "Bank Hack",
             Text = "Bank hack activated!",
             Duration = 2
         })
     end
-end)
-
--- ================================
--- BYPASS TAB
--- ================================
-CreateToggle("Enable Bypass System", BypassTab, "bypassEnabled")
-
-CreateButton("Run Anti-Cheat Bypass", BypassTab, function()
-    pcall(BypassAntiCheat)
-    pcall(HideScript)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Bypass",
-        Text = "Anti-cheat bypassed successfully!",
-        Duration = 2
-    })
-end)
-
-CreateButton("Randomize Script Names", BypassTab, function()
-    pcall(HideScript)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Bypass",
-        Text = "Script names randomized!",
-        Duration = 2
-    })
-end)
-
-CreateButton("Clear Console (Remove Traces)", BypassTab, function()
-    pcall(function()
-        local console = game:GetService("CoreGui"):FindFirstChild("RobloxGui"):FindFirstChild("Console")
-        if console then
-            console:Clear()
-        end
-    end)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "m1v Bypass",
-        Text = "Console cleared!",
-        Duration = 2
-    })
 end)
 
 -- ================================
@@ -876,15 +788,10 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 -- ================================
--- START BYPASS
--- ================================
-StartBypass()
-
--- ================================
--- INITIAL NOTIFICATION
+-- NOTIFICATION
 -- ================================
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "m1v Ultimate v8",
-    Text = "All features loaded! Click ⚡ to open menu.",
+    Title = "San Aurie Ultimate v7 CLEAN",
+    Text = "All protection systems removed. Clean version.",
     Duration = 4
 })
